@@ -638,44 +638,63 @@ def userlogin(request):
 
     return render(request, "userlogin.html")
 
-# INDEX / DASHBOARD VIEW (with image upload)
 def index(request):
-    # Check if user is logged in via session
     user_id = request.session.get('user_id')
-    if not user_id:
-        return redirect('userlogin')  # Redirect to login if not logged in
 
-    # Get logged-in user instance
+    # ---------------- AJAX AUTH CHECK ----------------
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        if not user_id:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Session expired'},
+                status=401
+            )
+
+    # ---------------- NORMAL PAGE AUTH ----------------
+    if not user_id:
+        return redirect('userlogin')
+
     try:
         user = Userlogin.objects.get(id=user_id)
     except Userlogin.DoesNotExist:
+        request.session.flush()
         return redirect('userlogin')
 
-    # Handle image upload
+    # ---------------- IMAGE UPLOAD ----------------
     if request.method == 'POST' and request.FILES.get('image'):
-        name = request.POST.get('name')
-        image = request.FILES['image']
+        try:
+            name = request.POST.get('name', '').strip()
+            image = request.FILES.get('image')
 
-        if not name:
-            return JsonResponse({'status': 'error', 'message': 'Name is required.'})
+            if not name:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'Name is required'},
+                    status=400
+                )
 
-        # Create upload and link to logged-in user
-        upload = Upload.objects.create(name=name, image=image, user=user)
-        upload.save()
+            upload = Upload.objects.create(
+                name=name,
+                image=image,
+                user=user
+            )
 
-        return JsonResponse({
-            'status': 'success',
-            'name': upload.name,
-            'image_url': upload.image.url
-        })
+            return JsonResponse({
+                'status': 'success',
+                'image_url': upload.image.url
+            })
 
-    # For GET requests, render template with username and user uploads
+        except Exception as e:
+            print("UPLOAD ERROR:", e)
+            return JsonResponse(
+                {'status': 'error', 'message': 'Server error'},
+                status=500
+            )
+
+    # ---------------- PAGE LOAD ----------------
     context = {
         'username': request.session.get('username'),
-        'user_uploads': Upload.objects.filter(user=user).order_by('-created_at'),  # optional: show this user's uploads
+        'user_uploads': Upload.objects.filter(user=user).order_by('-created_at'),
     }
     return render(request, 'index.html', context)
-
 
 # LOGOUT VIEW
 
