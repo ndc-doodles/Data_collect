@@ -121,45 +121,40 @@
     if (!selectedFile) return;
 
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    const maxSize = 5 * 1024 * 1024;
 
     if (!allowedTypes.includes(selectedFile.type)) {
-      selectedFile = null;
-      cameraInput.value = '';
+      resetFile();
       return showModal('failed', 'FAILED!', 'Only JPG, PNG, WEBP allowed.', 'TRY AGAIN');
     }
-
-<!--    if (selectedFile.size > maxSize) {-->
-<!--      selectedFile = null;-->
-<!--      cameraInput.value = '';-->
-<!--      return showModal('failed', 'FAILED!', 'Image must be under 5MB.', 'TRY AGAIN');-->
-<!--    }-->
 
     imageName.textContent = selectedFile.name;
     imageName.classList.remove('hidden');
   };
 
-  /* ---------------- INPUT HARDENING (NO LINKS / NO SQL / NO XSS) ---------------- */
+  function resetFile() {
+    selectedFile = null;
+    cameraInput.value = '';
+    imageName.textContent = '';
+    imageName.classList.add('hidden');
+  }
+
+  /* ---------------- INPUT HARDENING ---------------- */
 
   uploadedBy.addEventListener('input', () => {
-    // Allow only safe characters
     uploadedBy.value = uploadedBy.value.replace(/[^a-zA-Z0-9 ._]/g, '');
 
-    // Block URLs & common SQL/XSS keywords
-    const blockedPattern =
+    const blocked =
       /(https?:\/\/|www\.|\.com|\.in|\.net|\.org|select|insert|update|delete|drop|union|script|--|;)/gi;
 
-    if (blockedPattern.test(uploadedBy.value)) {
-      uploadedBy.value = uploadedBy.value.replace(blockedPattern, '');
-    }
+    uploadedBy.value = uploadedBy.value.replace(blocked, '');
   });
 
   uploadedBy.addEventListener('paste', (e) => {
-    const text = (e.clipboardData || window.clipboardData).getData('text');
-    const blockedPattern =
+    const text = e.clipboardData.getData('text');
+    const blocked =
       /(https?:\/\/|www\.|\.com|\.in|\.net|\.org|select|insert|update|delete|drop|union|script|--|;)/gi;
 
-    if (blockedPattern.test(text)) {
+    if (blocked.test(text)) {
       e.preventDefault();
       showModal('failed', 'INVALID INPUT', 'Please enter a valid name', 'OK');
     }
@@ -168,14 +163,10 @@
   /* ---------------- CSRF ---------------- */
 
   function getCookie(name) {
-    let value = null;
-    document.cookie.split(';').forEach(cookie => {
-      cookie = cookie.trim();
-      if (cookie.startsWith(name + '=')) {
-        value = decodeURIComponent(cookie.substring(name.length + 1));
-      }
-    });
-    return value;
+    return document.cookie
+      .split('; ')
+      .find(row => row.startsWith(name + '='))
+      ?.split('=')[1];
   }
 
   /* ---------------- MODAL ---------------- */
@@ -187,29 +178,21 @@
     void modalContent.offsetWidth;
     modalContent.classList.add('animate-pop');
 
-    if (type === 'success') {
-      modalIcon.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-500"
-             fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
-                d="M5 13l4 4L19 7"/>
-        </svg>`;
-      modalIcon.className =
-        'mx-auto mb-4 w-16 h-16 rounded-full bg-green-100 flex items-center justify-center';
-      modalBtn.className =
-        'px-6 py-2 rounded-full font-semibold text-white bg-green-500 hover:bg-green-600';
-    } else {
-      modalIcon.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-500"
-             fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
-                d="M6 18L18 6M6 6l12 12"/>
-        </svg>`;
-      modalIcon.className =
-        'mx-auto mb-4 w-16 h-16 rounded-full bg-red-100 flex items-center justify-center';
-      modalBtn.className =
-        'px-6 py-2 rounded-full font-semibold text-white bg-red-500 hover:bg-red-600';
-    }
+    const success = type === 'success';
+
+    modalIcon.innerHTML = success
+      ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="3" d="M5 13l4 4L19 7"/></svg>`
+      : `<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>`;
+
+    modalIcon.className =
+      `mx-auto mb-4 w-16 h-16 rounded-full flex items-center justify-center ${
+        success ? 'bg-green-100' : 'bg-red-100'
+      }`;
+
+    modalBtn.className =
+      `px-6 py-2 rounded-full font-semibold text-white ${
+        success ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
+      }`;
 
     modalTitle.textContent = title;
     modalMessage.textContent = message;
@@ -217,11 +200,7 @@
 
     modalBtn.onclick = () => {
       modal.classList.add('hidden');
-
-      cameraInput.value = '';
-      selectedFile = null;
-      imageName.textContent = '';
-      imageName.classList.add('hidden');
+      resetFile();
       btnText.textContent = 'Upload';
     };
   }
@@ -240,7 +219,6 @@
     postBtn.disabled = true;
     loader.classList.remove('hidden');
     btnText.textContent = 'Uploading...';
-    postBtn.classList.add('opacity-80');
 
     try {
       const formData = new FormData();
@@ -249,23 +227,31 @@
 
       const res = await fetch('/upload/', {
         method: 'POST',
-        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken')
+        },
         body: formData
       });
 
+      if (!res.ok) {
+        const text = await res.text();
+        console.error(text);
+        throw new Error('Server error');
+      }
+
       const data = await res.json();
 
-      if (data.status === 'success')
+      if (data.status === 'success') {
         showModal('success', 'SUCCESS!', 'File uploaded successfully.', 'CONTINUE');
-      else
-        showModal('failed', 'FAILED!', 'Upload failed.', 'TRY AGAIN');
+      } else {
+        showModal('failed', 'FAILED!', data.message || 'Upload failed.', 'TRY AGAIN');
+      }
 
-    } catch {
-      showModal('failed', 'FAILED!', 'Server error.', 'TRY AGAIN');
+    } catch (err) {
+      showModal('failed', 'FAILED!', 'Server error. Please try again.', 'TRY AGAIN');
     } finally {
       postBtn.disabled = false;
       loader.classList.add('hidden');
-      postBtn.classList.remove('opacity-80');
       btnText.textContent = 'Upload';
     }
   };
