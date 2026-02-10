@@ -145,26 +145,35 @@ rounded-xl shadow-xl p-4 h-64 flex flex-col border border-white/10">
 
   <div class="space-y-3 overflow-y-auto scrollbar-hide pr-1">
 
-    {% for upload in recent_uploads|slice:":20" %}
+    {% for user in users %}
     <div class="flex items-center justify-between">
 
       <div class="flex items-center gap-3">
-        <img src="{{ upload.image.url }}"
-             class="w-8 h-8 rounded-md object-cover border border-white/20">
+        <!-- Avatar (initials fallback) -->
+        <div class="w-8 h-8 rounded-md bg-purple-600/40
+                    flex items-center justify-center text-xs font-bold text-white">
+          {{ user.username|slice:":2"|upper }}
+        </div>
+
         <div>
-          <p class="text-sm font-medium">{{ upload.name }}</p>
+          <p class="text-sm font-medium text-white">
+            {{ user.username }}
+          </p>
           <p class="text-xs text-purple-300">
-            {{ upload.created_at|date:"d M" }}
+            Last login: {{ user.last_login|date:"d M Y" }}
           </p>
         </div>
       </div>
 
+      <!-- Activity bar (visual only) -->
       <div class="w-20 h-2 bg-white/10 rounded-full overflow-hidden">
         <div class="h-full bg-gradient-to-r from-lime-400 via-cyan-400 to-pink-500"
-             style="width: {{ forloop.counter|add:2 }}0%;"></div>
+             style="width: {{ forloop.counter|add:3 }}0%;"></div>
       </div>
 
     </div>
+    {% empty %}
+      <p class="text-xs text-purple-300 text-center">No users found</p>
     {% endfor %}
 
   </div>

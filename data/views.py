@@ -146,18 +146,17 @@ def dashboard(request):
     # ================= COUNTS =================
     total_uploads = Upload.objects.count()
 
-    # ✅ UNIQUE UPLOAD NAMES (same name counted once)
     total_unique_upload_names = (
-        Upload.objects
-        .values('name')
-        .distinct()
-        .count()
+        Upload.objects.values('name').distinct().count()
     )
 
     total_categories = Category.objects.count()
 
     # ================= RECENT =================
-    recent_uploads = Upload.objects.order_by('-created_at')[:10]
+    recent_uploads = Upload.objects.select_related('user').order_by('-created_at')[:10]
+
+    # ✅ USERS LIST (latest active first)
+    users = Userlogin.objects.order_by('-last_login')[:20]
 
     context = {
         # graph
@@ -171,9 +170,15 @@ def dashboard(request):
 
         # recent
         'recent_uploads': recent_uploads,
+
+        # users
+        'users': users,
+        'total_users': Userlogin.objects.count(),
     }
 
     return render(request, 'dashboard.html', context)
+
+
 
 @never_cache
 @login_required(login_url='/login/')
