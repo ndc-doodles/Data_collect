@@ -26,7 +26,11 @@ SECRET_KEY = 'django-insecure-#tcx#++jikujdyj7g+0l2d%2(rky@-n=a+*-_@z4g#w3p$klau
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'cybexel.in',
+    'www.cybexel.in',
+]
 
 
 # Application definition
@@ -83,6 +87,17 @@ DATABASES = {
     }
 }
 
+
+
+
+
+
+
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://cybexel.in',
+    'https://www.cybexel.in',
+]
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
