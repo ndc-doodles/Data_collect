@@ -129,11 +129,11 @@
       return showModal('failed', 'FAILED!', 'Only JPG, PNG, WEBP allowed.', 'TRY AGAIN');
     }
 
-    if (selectedFile.size > maxSize) {
-      selectedFile = null;
-      cameraInput.value = '';
-      return showModal('failed', 'FAILED!', 'Image must be under 5MB.', 'TRY AGAIN');
-    }
+<!--    if (selectedFile.size > maxSize) {-->
+<!--      selectedFile = null;-->
+<!--      cameraInput.value = '';-->
+<!--      return showModal('failed', 'FAILED!', 'Image must be under 5MB.', 'TRY AGAIN');-->
+<!--    }-->
 
     imageName.textContent = selectedFile.name;
     imageName.classList.remove('hidden');
