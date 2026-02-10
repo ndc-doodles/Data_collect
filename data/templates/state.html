@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+
+<body class="min-h-screen flex text-white
+bg-gradient-to-br from-[#1a0826] via-[#3b0f4a] to-[#0f1c3f]">
+
+<!-- SIDEBAR -->
+<aside class="w-64 hidden md:flex flex-col h-screen sticky top-0
+bg-gradient-to-b from-[#2b0f3a] to-[#14091f]
+border-r border-white/10">
+
+  <div class="p-6 text-xl font-bold text-purple-300 border-b border-white/10">
+    Admin Panel
+  </div>
+
+  <nav class="flex-1 p-4 space-y-2 text-purple-200">
+    <a href="{% url 'dashboard' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+      Dashboard
+    </a>
+      <a href="{% url 'inbox' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+     Inbox
+    </a>
+    <a href="{% url 'category' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+      Category & Sub Category
+    </a>
+    <a href="{% url 'state_district' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg
+              bg-gradient-to-r from-purple-600/40 to-pink-500/40">
+     State & District
+    </a>
+    <a href="{% url 'data' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+     Quick Entry
+    </a>
+      <a href="{% url 'data_list' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+    Uploads
+    </a>
+      <a href="{% url 'usercreate' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+   Create Users
+    </a>
+       <a href="{% url 'userlist' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+   Users
+    </a>
+  </nav>
+
+  <div class="p-4 border-t border-white/10">
+    <a href="{% url 'superuser_logout' %}"
+       class="block text-center bg-gradient-to-r from-pink-500 to-red-500
+              text-white py-2 rounded-lg hover:opacity-90">
+      Logout
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="flex-1 flex flex-col">
+
+<!-- TOP BAR -->
+<header class="px-6 h-[4.78rem] flex justify-between items-center
+sticky top-0 z-40
+bg-white/5 backdrop-blur-xl border-b border-white/10">
+
+  <h1 class="text-xl font-semibold text-purple-200">State & District</h1>
+
+  <div class="flex items-center gap-3">
+    <div class="w-10 h-10 rounded-full
+                bg-gradient-to-r from-purple-500 to-pink-500
+                flex items-center justify-center font-bold">
+      {{ request.user.username|first|upper }}
+    </div>
+    <span class="text-purple-200 font-medium">
+      {{ request.user.username }}
+    </span>
+  </div>
+</header>
+
+<!-- CONTENT -->
+<main class="p-6 space-y-6">
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+ <!-- ================= LEFT : STATE ================= -->
+<div class="bg-white/10 backdrop-blur rounded-xl border border-white/10 p-4
+            h-[550px] flex flex-col">
+
+  <div class="flex items-center justify-between gap-4 mb-4">
+  <h2 class="text-sm font-semibold text-purple-200 whitespace-nowrap">
+    Manage States
+  </h2>
+
+  <input
+    type="text"
+    placeholder="Search states..."
+    onkeyup="filterTable(this, 'stateTable')"
+    class="w-64 bg-white/5 border border-white/10 rounded-lg
+           px-3 py-2 text-sm text-white placeholder-purple-300
+           focus:outline-none focus:ring-2 focus:ring-purple-500">
+</div>
+
+  <!-- ADD / EDIT STATE -->
+  <form method="POST" class="flex gap-2 mb-4">
+    {% csrf_token %}
+    <input type="hidden" name="action"
+           value="{{ edit_state|yesno:'edit_state,add_state' }}">
+    {% if edit_state %}
+      <input type="hidden" name="id" value="{{ edit_state.id }}">
+    {% endif %}
+
+    <input
+      name="name"
+      value="{{ edit_state.name|default:'' }}"
+      placeholder="Enter state name"
+      required
+      class="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2
+             text-sm text-white placeholder-purple-300
+             focus:outline-none focus:ring-2 focus:ring-purple-500">
+
+    <button
+      class="px-4 py-2 rounded-lg text-sm font-medium
+             bg-gradient-to-r from-purple-500 to-pink-500">
+      {% if edit_state %}Update{% else %}Add{% endif %}
+    </button>
+  </form>
+
+  <!-- SCROLLABLE TABLE -->
+  <div class="flex-1 overflow-y-auto hide-scrollbar
+              rounded-lg border border-white/10">
+
+    <table class="w-full text-sm" id="stateTable">
+      <thead class="bg-white/5 text-purple-300 sticky top-0">
+        <tr>
+          <th class="px-4 py-2 text-left">ID</th>
+          <th class="px-4 py-2 text-left">Name</th>
+          <th class="px-4 py-2 text-left">Action</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-white/10">
+        {% for state in states %}
+        <tr class="hover:bg-white/5">
+          <td class="px-4 py-2">{{ state.id }}</td>
+          <td class="px-4 py-2">{{ state.name }}</td>
+          <td class="px-4 py-2 space-x-2 text-xs">
+            <a href="javascript:void(0)"
+               onclick="openStateEdit('{{ state.id }}','{{ state.name }}')"
+               class="text-cyan-400">Edit</a>
+
+            <a href="?delete_state={{ state.id }}" class="text-red-400">Delete</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="3" class="px-4 py-4 text-center text-purple-300">
+            No states
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+  </div>
+</div>
+
+<!-- ================= RIGHT : DISTRICT ================= -->
+<div class="bg-white/10 backdrop-blur rounded-xl border border-white/10 p-4
+            h-[550px] flex flex-col">
+
+  <div class="flex items-center justify-between gap-4 mb-4">
+  <h2 class="text-sm font-semibold text-purple-200 whitespace-nowrap">
+    Manage Districts
+  </h2>
+
+  <input
+    type="text"
+    placeholder="Search districts..."
+    onkeyup="filterTable(this, 'districtTable')"
+    class="w-64 bg-white/5 border border-white/10 rounded-lg
+           px-3 py-2 text-sm text-white placeholder-purple-300
+           focus:outline-none focus:ring-2 focus:ring-cyan-500">
+</div>
+
+  <form method="POST" class="flex gap-2 mb-4" onsubmit="return validateDistrictForm()">
+  {% csrf_token %}
+  <input type="hidden" name="action"
+         value="{{ edit_district|yesno:'edit_district,add_district' }}">
+  {% if edit_district %}
+    <input type="hidden" name="id" value="{{ edit_district.id }}">
+  {% endif %}
+
+  <!-- STATE DROPDOWN -->
+  <div class="relative w-full" id="stateDropdown">
+
+    <button
+      type="button"
+      onclick="toggleDropdown('state')"
+      class="w-full h-11 flex items-center justify-between
+             bg-white/5 border border-white/10 rounded-lg
+             px-4 text-sm text-purple-200
+             focus:outline-none focus:ring-2 focus:ring-purple-500">
+
+      <span id="stateSelected">Select State</span>
+      <svg class="w-4 h-4 text-purple-300 transition-transform"
+           id="stateArrow"
+           fill="none" stroke="currentColor" stroke-width="2"
+           viewBox="0 0 24 24">
+        <path d="M19 9l-7 7-7-7"/>
+      </svg>
+    </button>
+
+    <div
+      id="stateMenu"
+      class="absolute z-50 mt-2 w-full hidden
+             bg-[#14091f] border border-white/10
+             rounded-xl shadow-xl overflow-hidden max-h-56 overflow-y-auto scrollbar-hide">
+
+      {% for state in states %}
+      <div
+        onclick="selectOption('state', '{{ state.id }}', '{{ state.name }}')"
+        class="px-4 py-3 text-sm text-purple-200 cursor-pointer transition
+               hover:bg-gradient-to-r hover:from-purple-500/30 hover:to-pink-500/30">
+        {{ state.name }}
+      </div>
+      {% endfor %}
+
+    </div>
+
+    <input type="hidden" name="state" id="stateInput">
+  </div>
+
+  <input
+    name="name"
+    value="{{ edit_district.name|default:'' }}"
+    placeholder="Enter district name"
+    required
+    class="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2
+           text-sm text-white placeholder-purple-300
+           focus:outline-none focus:ring-2 focus:ring-cyan-500">
+
+  <button
+    class="px-4 py-2 rounded-lg text-sm font-medium
+           bg-gradient-to-r from-cyan-500 to-blue-500">
+    {% if edit_district %}Update{% else %}Add{% endif %}
+  </button>
+</form>
+
+<!-- Warning message container -->
+<p id="districtWarning" class="text-red-400 text-xs mt-1 hidden">
+  ⚠ Please select a state before submitting.
+</p>
+
+  <!-- SCROLLABLE TABLE -->
+  <div class="flex-1 overflow-y-auto hide-scrollbar
+              rounded-lg border border-white/10">
+
+    <table class="w-full text-sm" id="districtTable">
+      <thead class="bg-white/5 text-purple-300 sticky top-0">
+        <tr>
+          <th class="px-4 py-2 text-left">ID</th>
+          <th class="px-4 py-2 text-left">Name</th>
+          <th class="px-4 py-2 text-left">State</th>
+          <th class="px-4 py-2 text-left">Action</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-white/10">
+        {% for dist in districts %}
+        <tr class="hover:bg-white/5">
+          <td class="px-4 py-2">{{ dist.id }}</td>
+          <td class="px-4 py-2">{{ dist.name }}</td>
+          <td class="px-4 py-2 text-xs text-purple-300">{{ dist.state.name }}</td>
+          <td class="px-4 py-2 space-x-2 text-xs">
+            <a href="javascript:void(0)"
+               onclick="openDistrictEdit('{{ dist.id }}','{{ dist.name }}','{{ dist.state.id }}')"
+               class="text-cyan-400">Edit</a>
+
+            <a href="?delete_district={{ dist.id }}" class="text-red-400">Delete</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="4" class="px-4 py-4 text-center text-purple-300">
+            No districts
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+  </div>
+</div>
+
+</div>
+</main>
+</div>
+
+
+<!-- EDIT MODAL -->
+<div id="editModal"
+     class="fixed inset-0 z-[999] hidden
+            bg-black/60 backdrop-blur-sm
+            flex items-center justify-center">
+
+  <div class="bg-[#14091f] w-full max-w-md rounded-2xl
+              border border-white/10 p-6">
+
+    <!-- HEADER -->
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold text-purple-200" id="modalTitle">
+        Edit
+      </h3>
+      <button onclick="closeModal()" class="text-purple-300 hover:text-white">
+        ✕
+      </button>
+    </div>
+
+    <!-- FORM -->
+    <form method="POST" id="editForm" class="space-y-4">
+      {% csrf_token %}
+
+      <input type="hidden" name="action" id="modalAction">
+      <input type="hidden" name="id" id="modalId">
+
+      <!-- MODAL STATE DROPDOWN (for Districts) -->
+      <div id="modalStateWrapper" class="hidden">
+        <label class="text-xs text-purple-300 mb-1 block">
+          State
+        </label>
+
+        <div class="relative w-full" id="modalStateDropdown">
+
+          <!-- SELECT BOX -->
+          <button
+            type="button"
+            onclick="toggleDropdown('modalState')"
+            class="w-full h-11 flex items-center justify-between
+                   bg-white/5 border border-white/10 rounded-lg
+                   px-4 text-sm text-purple-200
+                   focus:outline-none focus:ring-2 focus:ring-purple-500">
+
+            <span id="modalStateSelected">Select State</span>
+
+            <svg class="w-4 h-4 text-purple-300 transition-transform"
+                 id="modalStateArrow"
+                 fill="none" stroke="currentColor" stroke-width="2"
+                 viewBox="0 0 24 24">
+              <path d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+
+          <!-- OPTIONS -->
+          <div
+            id="modalStateMenu"
+            class="absolute z-50 mt-2 w-full hidden
+                   bg-[#14091f] border border-white/10
+                   rounded-xl shadow-xl overflow-hidden
+                   max-h-56 overflow-y-auto scrollbar-hide">
+
+            {% for state in states %}
+            <div
+              onclick="selectModalState('{{ state.id }}','{{ state.name }}')"
+              class="px-4 py-3 text-sm text-purple-200 cursor-pointer transition
+                     hover:bg-gradient-to-r hover:from-purple-500/30 hover:to-pink-500/30">
+              {{ state.name }}
+            </div>
+            {% endfor %}
+
+          </div>
+
+          <!-- HIDDEN INPUT -->
+          <input type="hidden" name="state" id="modalStateInput">
+
+        </div>
+      </div>
+
+      <!-- NAME -->
+      <div>
+        <label class="text-xs text-purple-300">Name</label>
+        <input
+          name="name"
+          id="modalName"
+          required
+          class="w-full h-11 bg-white/5 border border-white/10
+                 rounded-lg px-3 text-sm text-white
+                 focus:ring-2 focus:ring-purple-500">
+      </div>
+
+      <!-- ACTIONS -->
+      <div class="flex justify-end gap-3 pt-4">
+        <button type="button"
+                onclick="closeModal()"
+                class="px-4 py-2 rounded-lg
+                       text-sm bg-white/10 hover:bg-white/20">
+          Cancel
+        </button>
+
+        <button type="submit"
+                class="px-4 py-2 rounded-lg text-sm
+                       bg-gradient-to-r from-purple-500 to-pink-500">
+          Update
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<script>
+function showModal() {
+  document.getElementById('editModal').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('editModal').classList.add('hidden');
+}
+
+/* Close modal on ESC key */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
+
+/* Modal dropdown for state selection */
+function selectModalState(id, name){
+  document.getElementById('modalStateSelected').innerText = name;
+  document.getElementById('modalStateInput').value = id;
+
+  document.getElementById('modalStateMenu').classList.add('hidden');
+  document.getElementById('modalStateArrow').classList.remove('rotate-180');
+}
+
+/* Close dropdown if clicking outside */
+document.addEventListener('click', function(e){
+  const dropdown = document.getElementById('modalStateDropdown');
+  if(dropdown && !dropdown.contains(e.target)){
+    document.getElementById('modalStateMenu')?.classList.add('hidden');
+    document.getElementById('modalStateArrow')?.classList.remove('rotate-180');
+  }
+});
+</script>
+
+
+<!-- ===================== SCRIPTS ===================== -->
+<script>
+function toggleDropdown(type) {
+  const menu = document.getElementById(type+'Menu');
+  const arrow = document.getElementById(type+'Arrow');
+  menu.classList.toggle('hidden');
+  arrow.classList.toggle('rotate-180');
+}
+
+function selectOption(type, value, label) {
+  document.getElementById(type+'Selected').innerText = label;
+  document.getElementById(type+'Input').value = value;
+  document.getElementById(type+'Menu').classList.add('hidden');
+  document.getElementById(type+'Arrow').classList.remove('rotate-180');
+}
+
+/* Filter tables */
+function filterTable(input, tableId){
+  const filter = input.value.toLowerCase();
+  const table = document.getElementById(tableId);
+  table.querySelectorAll("tbody tr").forEach(row => {
+    row.style.display = row.innerText.toLowerCase().includes(filter) ? "" : "none";
+  });
+}
+
+/* Edit modals */
+function openStateEdit(id, name){
+  document.getElementById('modalTitle').innerText='Edit State';
+  document.getElementById('modalAction').value='edit_state';
+  document.getElementById('modalId').value=id;
+  document.getElementById('modalName').value=name;
+  document.getElementById('modalStateWrapper').classList.add('hidden');
+  showModal();
+}
+
+function openDistrictEdit(id, name, stateId){
+  document.getElementById('modalTitle').innerText='Edit District';
+  document.getElementById('modalAction').value='edit_district';
+  document.getElementById('modalId').value=id;
+  document.getElementById('modalName').value=name;
+  document.getElementById('modalStateWrapper').classList.remove('hidden');
+
+  // pre-select state in modal dropdown
+  const selected = [...document.querySelectorAll('#modalStateMenu div')]
+    .find(el => el.getAttribute('onclick').includes(`'${stateId}'`));
+  if(selected){
+    document.getElementById('modalStateSelected').innerText=selected.innerText;
+    document.getElementById('modalStateInput').value=stateId;
+  }
+  showModal();
+}
+</script>
+
+<script>
+function validateDistrictForm() {
+  const stateInput = document.getElementById('stateInput').value;
+  const warning = document.getElementById('districtWarning');
+
+  if (!stateInput) {
+    // Show warning
+    warning.classList.remove('hidden');
+    return false; // stop form submission
+  }
+
+  // Hide warning if all good
+  warning.classList.add('hidden');
+  return true; // allow form submission
+}
+</script>
+
+
+</div>
+</body>
+</html>

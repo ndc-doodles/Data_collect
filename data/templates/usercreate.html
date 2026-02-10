@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <style>
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    .input-sm::placeholder { color: #d8b4fe; }
+  </style>
+</head>
+
+<body class="min-h-screen flex text-white bg-gradient-to-br from-[#1a0826] via-[#3b0f4a] to-[#0f1c3f]">
+
+<!-- SIDEBAR -->
+<aside class="w-64 hidden md:flex flex-col h-screen sticky top-0 bg-gradient-to-b from-[#2b0f3a] to-[#14091f] border-r border-white/10">
+  <div class="p-6 text-xl font-bold text-purple-300 border-b border-white/10">Admin Panel</div>
+  <nav class="flex-1 p-4 space-y-2 text-purple-200">
+     <a href="{% url 'dashboard' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+      Dashboard
+    </a>
+      <a href="{% url 'inbox' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+     Inbox
+    </a>
+    <a href="{% url 'category' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+      Category & Sub Category
+    </a>
+    <a href="{% url 'state_district' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+     State & District
+    </a>
+    <a href="{% url 'data' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+     Quick Entry
+    </a>
+      <a href="{% url 'data_list' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+    Uploads
+    </a>
+      <a href="{% url 'usercreate' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg
+              bg-gradient-to-r from-purple-600/40 to-pink-500/40">
+   Create Users
+    </a>
+       <a href="{% url 'userlist' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+   Users
+    </a>
+  </nav>
+  <div class="p-4 border-t border-white/10">
+    <a href="{% url 'superuser_logout' %}" class="block text-center bg-gradient-to-r from-pink-500 to-red-500 text-white py-2 rounded-lg hover:opacity-90">Logout</a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="flex-1 flex flex-col">
+
+<!-- TOP BAR -->
+<header class="px-6 h-[4.78rem] flex justify-between items-center sticky top-0 z-40 bg-white/5 backdrop-blur-xl border-b border-white/10">
+  <h1 class="text-xl font-semibold text-purple-200">Create New User</h1>
+  <div class="flex items-center gap-3">
+    <div class="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center font-bold">
+      {{ request.user.username|first|upper }}
+    </div>
+    <span class="text-purple-200 font-medium">{{ request.user.username }}</span>
+  </div>
+</header>
+
+<main class="flex justify-center items-center min-h-[calc(100vh-4.78rem)] p-6">
+
+  <!-- FORM CARD -->
+  <div class="w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 space-y-6 shadow-lg">
+    <h2 class="text-2xl font-bold text-purple-200 text-center">Create New User</h2>
+
+    <form method="POST" class="space-y-4" onsubmit="return validateForm()">
+  {% csrf_token %}
+  <input type="text" name="username" placeholder="Username" class="input-sm w-full px-4 py-2 rounded-lg border border-white/20 bg-white/5 text-white placeholder-purple-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent" required>
+  <input type="password" id="password" name="password" placeholder="Password" class="input-sm w-full px-4 py-2 rounded-lg border border-white/20 bg-white/5 text-white placeholder-purple-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent" required>
+  <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm Password" class="input-sm w-full px-4 py-2 rounded-lg border border-white/20 bg-white/5 text-white placeholder-purple-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent" required>
+
+  <div class="flex justify-end">
+    <button type="submit" class="px-6 py-2 text-sm rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 transition">Create User</button>
+  </div>
+</form>
+
+  </div>
+
+</main>
+
+<!-- SUCCESS MODAL -->
+<div id="successModal"
+  class="fixed inset-0 z-[999] hidden flex items-center justify-center
+         bg-black/60 backdrop-blur-sm">
+  <div id="successBox"
+    class="bg-gradient-to-br from-[#2b0f3a] to-[#14091f]
+           border border-white/10 rounded-2xl
+           w-[90%] max-w-sm p-6 text-center shadow-2xl
+           transform scale-90 opacity-0 transition-all duration-300">
+
+    <div class="mx-auto w-14 h-14 flex items-center justify-center
+                rounded-full bg-gradient-to-r from-purple-500 to-pink-500
+                text-white text-2xl font-bold">
+      ✓
+    </div>
+
+    <h3 class="mt-4 text-lg font-semibold text-purple-200">Success</h3>
+    <p id="successMessage" class="mt-2 text-sm text-purple-300">Your action was successful.</p>
+
+    <button onclick="closeSuccessModal()"
+      class="mt-5 w-full py-2 rounded-lg text-sm
+             bg-gradient-to-r from-purple-600 to-pink-600
+             hover:opacity-90 transition">
+      OK
+    </button>
+  </div>
+</div>
+
+<!-- ERROR MODAL -->
+<div id="errorModal"
+  class="fixed inset-0 z-[999] hidden flex items-center justify-center
+         bg-black/60 backdrop-blur-sm">
+  <div id="errorBox"
+    class="bg-gradient-to-br from-[#2b0f3a] to-[#14091f]
+           border border-white/10 rounded-2xl
+           w-[90%] max-w-sm p-6 text-center shadow-2xl
+           transform scale-90 opacity-0 transition-all duration-300">
+
+    <div class="mx-auto w-14 h-14 flex items-center justify-center
+                rounded-full bg-red-500
+                text-white text-2xl font-bold">
+      ✗
+    </div>
+
+    <h3 class="mt-4 text-lg font-semibold text-purple-200">Error</h3>
+    <p id="errorMessage" class="mt-2 text-sm text-purple-300">Something went wrong.</p>
+
+    <button onclick="closeErrorModal()"
+      class="mt-5 w-full py-2 rounded-lg text-sm
+             bg-gradient-to-r from-red-500 to-pink-500
+             hover:opacity-90 transition">
+      OK
+    </button>
+  </div>
+</div>
+
+<script>
+function showSuccessModal(message = "Your action was successful.") {
+  const modal = document.getElementById('successModal');
+  const box = document.getElementById('successBox');
+  const msg = document.getElementById('successMessage');
+  msg.textContent = message;
+
+  modal.classList.remove('hidden');
+
+  setTimeout(() => {
+    box.classList.remove('scale-90', 'opacity-0');
+    box.classList.add('scale-100', 'opacity-100');
+  }, 50);
+}
+
+function closeSuccessModal() {
+  const modal = document.getElementById('successModal');
+  const box = document.getElementById('successBox');
+
+  box.classList.add('scale-90', 'opacity-0');
+
+  setTimeout(() => {
+    modal.classList.add('hidden');
+  }, 300);
+}
+
+function showErrorModal(message = "Something went wrong.") {
+  const modal = document.getElementById('errorModal');
+  const box = document.getElementById('errorBox');
+  const msg = document.getElementById('errorMessage');
+  msg.textContent = message;
+
+  modal.classList.remove('hidden');
+
+  setTimeout(() => {
+    box.classList.remove('scale-90', 'opacity-0');
+    box.classList.add('scale-100', 'opacity-100');
+  }, 50);
+}
+
+function closeErrorModal() {
+  const modal = document.getElementById('errorModal');
+  const box = document.getElementById('errorBox');
+
+  box.classList.add('scale-90', 'opacity-0');
+
+  setTimeout(() => {
+    modal.classList.add('hidden');
+  }, 300);
+}
+
+// Django messages integration
+{% if messages %}
+window.addEventListener('load', () => {
+  {% for message in messages %}
+    {% if message.tags == 'error' %}
+      showErrorModal("{{ message|escapejs }}");
+    {% else %}
+      showSuccessModal("{{ message|escapejs }}");
+    {% endif %}
+  {% endfor %}
+});
+{% endif %}
+</script>
+
+    <script>
+function validateForm() {
+  const password = document.getElementById('password').value.trim();
+  const confirmPassword = document.getElementById('confirm_password').value.trim();
+
+  if (password.length < 6) {
+    showErrorModal("Password must be at least 6 characters long.");
+    return false; // Prevent form submission
+  }
+
+  if (password !== confirmPassword) {
+    showErrorModal("Passwords do not match.");
+    return false; // Prevent form submission
+  }
+
+  return true; // All validations passed
+}
+</script>
+
+
+
+</div>
+</body>
+</html>

@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+
+<body class="min-h-screen flex text-white
+bg-gradient-to-br from-[#1a0826] via-[#3b0f4a] to-[#0f1c3f]">
+
+<!-- SIDEBAR -->
+<aside class="w-64 hidden md:flex flex-col h-screen sticky top-0
+bg-gradient-to-b from-[#2b0f3a] to-[#14091f]
+border-r border-white/10">
+
+  <div class="p-6 text-xl font-bold text-purple-300 border-b border-white/10">
+    Admin Panel
+  </div>
+
+  <nav class="flex-1 p-4 space-y-2 text-purple-200">
+    <a href="{% url 'dashboard' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+      Dashboard
+    </a>
+      <a href="{% url 'inbox' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg
+              bg-gradient-to-r from-purple-600/40 to-pink-500/40">
+     Inbox
+    </a>
+   <a href="{% url 'category' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+     Category & Sub Category
+    </a>
+    <a href="{% url 'state_district' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+     State & District
+    </a>
+    <a href="{% url 'data' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+    Quick Entry
+    </a>
+      <a href="{% url 'data_list' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+    Uploads
+    </a>
+      <a href="{% url 'usercreate' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+   Create Users
+    </a>
+       <a href="{% url 'userlist' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+   Users
+    </a>
+
+  </nav>
+
+  <div class="p-4 border-t border-white/10">
+    <a href="{% url 'superuser_logout' %}"
+       class="block text-center bg-gradient-to-r from-pink-500 to-red-500
+              text-white py-2 rounded-lg hover:opacity-90">
+      Logout
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="flex-1 flex flex-col">
+
+<!-- TOP BAR -->
+<header class="px-6 h-[4.78rem] flex justify-between items-center
+sticky top-0 z-40
+bg-white/5 backdrop-blur-xl border-b border-white/10">
+
+  <h1 class="text-xl font-semibold text-purple-200">Inbox</h1>
+
+  <div class="flex items-center gap-3">
+    <div class="w-10 h-10 rounded-full
+                bg-gradient-to-r from-purple-500 to-pink-500
+                flex items-center justify-center font-bold">
+      {{ request.user.username|first|upper }}
+    </div>
+    <span class="text-purple-200 font-medium">
+      {{ request.user.username }}
+    </span>
+  </div>
+</header>
+
+<!-- CONTENT -->
+<main class="p-6 space-y-6">
+
+    <!-- FILTER BAR -->
+<form method="GET" class="flex flex-wrap gap-3 items-center">
+
+  <input
+    type="text"
+    name="name"
+    value="{{ request.GET.name }}"
+    placeholder="Search by name..."
+    class="bg-white/5 border border-white/10 rounded-lg px-3 py-2
+           text-sm text-white placeholder-purple-300
+           focus:outline-none focus:ring-2 focus:ring-purple-500">
+
+  <input
+    type="date"
+    name="date"
+    value="{{ request.GET.date }}"
+    class="bg-white/5 border border-white/10 rounded-lg px-3 py-2
+           text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500">
+
+  <!-- STATUS DROPDOWN -->
+<div class="relative w-56" id="statusDropdown">
+
+  <!-- BUTTON -->
+  <button
+    type="button"
+    onclick="toggleStatusDropdown()"
+    class="w-full h-11 flex items-center justify-between
+           bg-white/5 border border-purple-500/60 rounded-lg
+           px-4 text-sm text-white
+           focus:outline-none focus:ring-2 focus:ring-purple-500">
+
+    <span id="statusSelected">
+      {% if request.GET.status == "opened" %}
+        Opened
+      {% elif request.GET.status == "not_opened" %}
+        Not Opened
+      {% else %}
+        All Status
+      {% endif %}
+    </span>
+
+    <svg id="statusArrow"
+         class="w-4 h-4 transition-transform text-purple-300"
+         fill="none" stroke="currentColor" stroke-width="2"
+         viewBox="0 0 24 24">
+      <path d="M19 9l-7 7-7-7"/>
+    </svg>
+  </button>
+
+  <!-- DROPDOWN -->
+  <div
+    id="statusMenu"
+    class="absolute mt-2 w-full hidden z-50
+           bg-[#14091f] border border-purple-500/30
+           rounded-xl shadow-xl overflow-hidden">
+
+    <div onclick="selectStatus('', 'All Status')"
+         class="px-4 py-3 text-sm text-purple-200 cursor-pointer hover:bg-purple-500/20">
+      All
+    </div>
+
+    <div onclick="selectStatus('opened', 'Opened')"
+         class="px-4 py-3 text-sm text-purple-200 cursor-pointer hover:bg-purple-500/20">
+      Opened
+    </div>
+
+    <div onclick="selectStatus('not_opened', 'Not Opened')"
+         class="px-4 py-3 text-sm text-purple-200 cursor-pointer hover:bg-purple-500/20">
+      Not Opened
+    </div>
+  </div>
+
+  <!-- HIDDEN INPUT -->
+  <input type="hidden" name="status" id="statusInput"
+         value="{{ request.GET.status }}">
+</div>
+
+  <button
+    class="px-4 py-2 rounded-lg text-sm font-medium
+           bg-gradient-to-r from-cyan-500 to-blue-500">
+    Filter
+  </button>
+
+</form>
+
+<div class="rounded-xl border border-white/10
+            max-h-[420px] overflow-y-auto overflow-x-hidden
+            scrollbar-hide">
+
+  <table class="min-w-full text-sm">
+    <thead class="bg-white/10 text-purple-200 sticky top-0 z-10">
+      <tr>
+        <th class="px-4 py-3 text-left">Name</th>
+        <th class="px-4 py-3">Preview</th>
+        <th class="px-4 py-3">Status</th>
+        <th class="px-4 py-3">Date</th>
+        <th class="px-4 py-3 text-right">Actions</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for upload in uploads %}
+      <tr class="border-t border-white/10 hover:bg-white/5 transition">
+
+        <td class="px-4 py-3">{{ upload.name }}</td>
+
+        <td class="px-4 py-3">
+          <img src="{{ upload.image.url }}"
+               class="w-12 h-12 rounded-lg object-cover cursor-pointer"
+               onclick="openModal('{{ upload.image.url }}', '{{ upload.id }}')">
+        </td>
+
+        <td class="px-4 py-3">
+          {% if upload.is_opened %}
+            <span class="text-green-400 font-medium">Opened</span>
+          {% else %}
+            <span class="text-red-400 font-medium">Not Opened</span>
+          {% endif %}
+        </td>
+
+        <td class="px-4 py-3 text-purple-300">
+          {{ upload.created_at|date:"d M Y" }}
+        </td>
+
+        <td class="px-4 py-3 text-right space-x-2">
+          <button onclick="openImage('{{ upload.id }}')"
+                  class="px-3 py-1 text-xs rounded-md bg-cyan-600 hover:bg-cyan-700">
+            Open
+          </button>
+
+          <button onclick="downloadImage('{{ upload.image.url }}', '{{ upload.name }}')"
+                  class="px-3 py-1 text-xs rounded-md ">
+           <i class="fa-solid fa-download"></i>
+          </button>
+
+          <a href="{% url 'delete_upload' upload.id %}"
+             onclick="return confirm('Delete this upload?')"
+             class="px-3 py-1 text-xs rounded-md text-red hover:bg-red-700">
+           <i class="fa-solid fa-trash-can"></i>
+          </a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" class="px-4 py-6 text-center text-purple-300">
+          No uploads found
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+
+
+
+</main>
+
+
+</div>
+
+
+<!-- IMAGE MODAL -->
+<div id="imageModal"
+     class="fixed inset-0 z-50 hidden bg-black/80
+            flex items-center justify-center">
+
+  <div class="relative max-w-4xl w-full p-4">
+    <button onclick="closeModal()"
+            class="absolute top-2 right-2 text-white text-xl">
+      ✕
+    </button>
+
+    <img id="modalImage"
+         class="max-h-[90vh] mx-auto rounded-xl shadow-2xl">
+  </div>
+</div>
+
+<script>
+function openModal(url) {
+  document.getElementById('modalImage').src = url;
+  document.getElementById('imageModal').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('imageModal').classList.add('hidden');
+}
+</script>
+<script>
+function openImage(id) {
+  fetch(`/upload/open/${id}/`)
+    .then(response => response.json())
+    .then(data => {
+      // open image in new tab
+      window.open(data.url, "_blank");
+
+      // reload page so status changes
+      location.reload();
+    })
+    .catch(err => {
+      alert("Failed to open image");
+      console.error(err);
+    });
+}
+</script>
+
+
+<script>
+async function downloadImage(url, filename) {
+  try {
+    const response = await fetch(url, { mode: "cors" });
+    const blob = await response.blob();
+
+    const blobUrl = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename || "download";
+    document.body.appendChild(a);
+    a.click();
+
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(blobUrl);
+  } catch (error) {
+    alert("Download failed");
+    console.error(error);
+  }
+}
+</script>
+
+
+<script>
+  function toggleStatusDropdown() {
+    const menu = document.getElementById("statusMenu");
+    const arrow = document.getElementById("statusArrow");
+
+    menu.classList.toggle("hidden");
+    arrow.classList.toggle("rotate-180");
+  }
+
+  function selectStatus(value, label) {
+    document.getElementById("statusSelected").innerText = label;
+    document.getElementById("statusInput").value = value;
+
+    // auto submit GET filter
+    document.getElementById("statusInput").form.submit();
+  }
+
+  // close when clicking outside
+  document.addEventListener("click", function (e) {
+    const dropdown = document.getElementById("statusDropdown");
+    if (!dropdown.contains(e.target)) {
+      document.getElementById("statusMenu").classList.add("hidden");
+      document.getElementById("statusArrow").classList.remove("rotate-180");
+    }
+  });
+</script>
+
+
+
+<style>
+    /* hide scrollbar but keep scrolling */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE */
+  scrollbar-width: none;    /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;            /* Chrome */
+}
+
+</style>
+
+
+</body>
+</html>

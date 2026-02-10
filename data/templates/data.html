@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { scrollbar-width: none; }
+
+    .input-sm{
+      width:100%;
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:.5rem;
+      padding:.45rem .7rem;
+      font-size:.8rem;
+      color:white;
+      outline:none;
+    }
+    .input-sm::placeholder{ color:#c4b5fd }
+    .input-sm:focus{
+      border-color:#a855f7;
+      box-shadow:0 0 0 1px rgba(168,85,247,.4)
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex text-white bg-gradient-to-br from-[#1a0826] via-[#3b0f4a] to-[#0f1c3f]">
+<!-- SIDEBAR -->
+<aside class="w-64 hidden md:flex flex-col h-screen sticky top-0
+bg-gradient-to-b from-[#2b0f3a] to-[#14091f]
+border-r border-white/10">
+
+  <div class="p-6 text-xl font-bold text-purple-300 border-b border-white/10">
+    Admin Panel
+  </div>
+
+  <nav class="flex-1 p-4 space-y-2 text-purple-200">
+   <a href="{% url 'dashboard' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+      Dashboard
+    </a>
+      <a href="{% url 'inbox' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+     Inbox
+    </a>
+    <a href="{% url 'category' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+      Category & Sub Category
+    </a>
+    <a href="{% url 'state_district' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+     State & District
+    </a>
+    <a href="{% url 'data' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg
+              bg-gradient-to-r from-purple-600/40 to-pink-500/40">
+     Quick Entry
+    </a>
+      <a href="{% url 'data_list' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+    Uploads
+    </a>
+      <a href="{% url 'usercreate' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+   Create Users
+    </a>
+       <a href="{% url 'userlist' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+   Users
+    </a>
+  </nav>
+
+  <div class="p-4 border-t border-white/10">
+    <a href="{% url 'superuser_logout' %}"
+       class="block text-center bg-gradient-to-r from-pink-500 to-red-500
+              text-white py-2 rounded-lg hover:opacity-90">
+      Logout
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="flex-1 flex flex-col">
+
+<header class="px-6 h-[4.78rem] flex justify-between items-center
+bg-white/5 backdrop-blur-xl border-b border-white/10">
+  <h1 class="text-xl font-semibold text-purple-200">Quick Entry</h1>
+</header>
+
+<main class="p-6">
+
+<form method="POST"
+  class="max-w-4xl mx-auto bg-white/5 border border-white/10 rounded-xl p-4 space-y-4">
+
+  {% csrf_token %}
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+    <input name="name" placeholder="Name" class="input-sm">
+    <input name="phone" placeholder="Phone" class="input-sm">
+    <input name="email" placeholder="Email" class="input-sm">
+    <input name="location" placeholder="Location" class="input-sm">
+
+    <!-- CATEGORY -->
+    <div class="relative">
+      <button type="button" onclick="toggle('category')"
+        class="w-full h-10 flex justify-between items-center bg-white/5 border border-white/10 rounded-lg px-4 text-sm">
+        <span id="categoryText">Select Category</span>
+        ▼
+      </button>
+
+      <div id="categoryMenu"
+        class="hidden absolute z-50 mt-2 w-full bg-[#14091f] border border-white/10 rounded-xl max-h-56 overflow-y-auto scrollbar-hide">
+        {% for c in categories %}
+        <div onclick="selectCategory('{{ c.id }}','{{ c.name }}')"
+          class="px-4 py-2 text-sm cursor-pointer hover:bg-purple-500/30">
+          {{ c.name }}
+        </div>
+        {% endfor %}
+      </div>
+
+      <input type="hidden" name="category" id="categoryInput">
+    </div>
+
+    <!-- SUBCATEGORY -->
+    <div class="relative">
+      <button type="button" onclick="toggle('subcategory')"
+        class="w-full h-10 flex justify-between items-center bg-white/5 border border-white/10 rounded-lg px-4 text-sm">
+        <span id="subcategoryText">Select Subcategory</span>
+        ▼
+      </button>
+
+      <div id="subcategoryMenu"
+        class="hidden absolute z-50 mt-2 w-full bg-[#14091f] border border-white/10 rounded-xl max-h-56 overflow-y-auto scrollbar-hide">
+      </div>
+
+      <input type="hidden" name="subcategory" id="subcategoryInput">
+    </div>
+
+    <!-- STATE -->
+    <div class="relative">
+      <button type="button" onclick="toggle('state')"
+        class="w-full h-10 flex justify-between items-center bg-white/5 border border-white/10 rounded-lg px-4 text-sm">
+        <span id="stateText">Select State</span>
+        ▼
+      </button>
+
+      <div id="stateMenu"
+        class="hidden absolute z-50 mt-2 w-full bg-[#14091f] border border-white/10 rounded-xl max-h-56 overflow-y-auto scrollbar-hide">
+        {% for s in states %}
+        <div onclick="selectState('{{ s.id }}','{{ s.name }}')"
+          class="px-4 py-2 text-sm cursor-pointer hover:bg-purple-500/30">
+          {{ s.name }}
+        </div>
+        {% endfor %}
+      </div>
+
+      <input type="hidden" name="state" id="stateInput">
+    </div>
+
+    <!-- DISTRICT -->
+    <div class="relative">
+      <button type="button" onclick="toggle('district')"
+        class="w-full h-10 flex justify-between items-center bg-white/5 border border-white/10 rounded-lg px-4 text-sm">
+        <span id="districtText">Select District</span>
+        ▼
+      </button>
+
+      <div id="districtMenu"
+        class="hidden absolute z-50 mt-2 w-full bg-[#14091f] border border-white/10 rounded-xl max-h-56 overflow-y-auto scrollbar-hide">
+      </div>
+
+      <input type="hidden" name="district" id="districtInput">
+    </div>
+
+    <input name="data_given" placeholder="Data Given" class="input-sm">
+    <input name="staff" placeholder="Staff" class="input-sm">
+   <input
+    type="text" name="user"
+    value="{{ request.user.username }}"
+    class="input-sm cursor-not-allowed"
+    readonly
+    placeholder="User"
+  >
+
+    <!-- SOURCE (✅ added) -->
+    <input name="source" placeholder="Source" class="input-sm">
+
+    <textarea name="remarks" rows="2" placeholder="Remarks"
+      class="input-sm md:col-span-2"></textarea>
+
+    <!-- PAID CHECKBOX -->
+    <div class="md:col-span-2 flex items-center gap-3 pt-2">
+      <input
+        type="checkbox"
+        name="paid"
+        id="paid"
+        class="w-4 h-4 accent-purple-600 cursor-pointer"
+      >
+      <label for="paid" class="text-sm text-gray-300 cursor-pointer">
+        Paid
+      </label>
+    </div>
+
+  </div>
+
+  <div class="flex justify-end pt-4">
+    <button
+      type="submit"
+      class="px-6 py-2 text-sm rounded-lg bg-gradient-to-r from-purple-600 to-pink-600">
+      Save
+    </button>
+  </div>
+
+</form>
+
+
+
+</main>
+
+</div>
+
+<div id="successModal"
+  class="fixed inset-0 z-[999] hidden flex items-center justify-center
+         bg-black/60 backdrop-blur-sm">
+
+  <div id="successBox"
+    class="bg-gradient-to-br from-[#2b0f3a] to-[#14091f]
+           border border-white/10 rounded-2xl
+           w-[90%] max-w-sm p-6 text-center shadow-2xl
+           transform scale-90 opacity-0 transition-all duration-300">
+
+    <div class="mx-auto w-14 h-14 flex items-center justify-center
+                rounded-full bg-gradient-to-r from-purple-500 to-pink-500
+                text-white text-2xl font-bold">
+      ✓
+    </div>
+
+    <h3 class="mt-4 text-lg font-semibold text-purple-200">
+      Saved Successfully
+    </h3>
+
+    <p class="mt-2 text-sm text-purple-300">
+      Your data has been stored successfully.
+    </p>
+
+    <button onclick="closeSuccessModal()"
+      class="mt-5 w-full py-2 rounded-lg text-sm
+             bg-gradient-to-r from-purple-600 to-pink-600
+             hover:opacity-90 transition">
+      OK
+    </button>
+  </div>
+</div>
+
+
+<script>
+function showSuccessModal() {
+  const modal = document.getElementById('successModal')
+  const box = document.getElementById('successBox')
+
+  modal.classList.remove('hidden')
+
+  setTimeout(() => {
+    box.classList.remove('scale-90', 'opacity-0')
+    box.classList.add('scale-100', 'opacity-100')
+  }, 50)
+}
+
+function closeSuccessModal() {
+  const modal = document.getElementById('successModal')
+  const box = document.getElementById('successBox')
+
+  box.classList.add('scale-90', 'opacity-0')
+
+  setTimeout(() => {
+    modal.classList.add('hidden')
+  }, 300)
+}
+</script>
+
+{% if request.GET.success %}
+<script>
+window.addEventListener('load', () => {
+  showSuccessModal()
+})
+</script>
+{% endif %}
+
+
+<script>
+function toggle(name){
+  document.getElementById(name+'Menu').classList.toggle('hidden')
+}
+
+/* CATEGORY ➜ SUBCATEGORY */
+function selectCategory(id,text){
+  categoryInput.value=id
+  categoryText.innerText=text
+  categoryMenu.classList.add('hidden')
+
+  subcategoryMenu.innerHTML='<div class="px-4 py-2">Loading...</div>'
+  subcategoryText.innerText='Select Subcategory'
+  subcategoryInput.value=''
+
+  fetch(`/get-subcategories/${id}/`)
+    .then(r=>r.json())
+    .then(data=>{
+      subcategoryMenu.innerHTML=''
+      data.forEach(i=>{
+        subcategoryMenu.innerHTML+=`
+          <div onclick="selectSub('${i.id}','${i.name}')"
+          class="px-4 py-2 text-sm cursor-pointer hover:bg-purple-500/30">
+          ${i.name}</div>`
+      })
+    })
+}
+
+function selectSub(id,text){
+  subcategoryInput.value=id
+  subcategoryText.innerText=text
+  subcategoryMenu.classList.add('hidden')
+}
+
+/* STATE ➜ DISTRICT */
+function selectState(id,text){
+  stateInput.value=id
+  stateText.innerText=text
+  stateMenu.classList.add('hidden')
+
+  districtMenu.innerHTML='<div class="px-4 py-2">Loading...</div>'
+  districtText.innerText='Select District'
+  districtInput.value=''
+
+  fetch(`/get-districts/${id}/`)
+    .then(r=>r.json())
+    .then(data=>{
+      districtMenu.innerHTML=''
+      data.forEach(i=>{
+        districtMenu.innerHTML+=`
+          <div onclick="selectDistrict('${i.id}','${i.name}')"
+          class="px-4 py-2 text-sm cursor-pointer hover:bg-purple-500/30">
+          ${i.name}</div>`
+      })
+    })
+}
+
+function selectDistrict(id,text){
+  districtInput.value=id
+  districtText.innerText=text
+  districtMenu.classList.add('hidden')
+}
+</script>
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

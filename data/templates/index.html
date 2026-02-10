@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Camera Upload</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    @keyframes pop {
+      0% { transform: scale(0.5); opacity: 0; }
+      70% { transform: scale(1.1); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+    .animate-pop {
+      animation: pop 0.5s ease-out forwards;
+    }
+  </style>
+</head>
+
+<body class="flex items-center justify-center min-h-screen bg-teal-100 p-4">
+
+  <!-- Upload Card -->
+  <div class="bg-transparent rounded-2xl shadow-xl p-6 sm:p-8 w-full max-w-sm
+              flex flex-col items-center gap-6">
+
+    <!-- Camera Button -->
+    <div class="relative w-32 h-32">
+      <div class="absolute inset-0 rounded-full bg-teal-500 opacity-50 animate-ping"></div>
+      <div class="absolute inset-0 rounded-full bg-teal-500 opacity-30 animate-pulse"></div>
+
+      <button id="cameraBtn"
+        class="relative bg-teal-400 hover:bg-teal-300 rounded-full w-full h-full
+               flex items-center justify-center shadow-lg text-white text-3xl">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none"
+             viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 7h2l1-2h10l1 2h2a2 2 0 012 2v10a2 2 0 01-2 2H3a2 2 0 01-2-2V9a2 2 0 012-2z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 11a3 3 0 100 6 3 3 0 000-6z"/>
+        </svg>
+      </button>
+
+      <input id="cameraInput" type="file" accept="image/*" capture="environment" class="hidden"/>
+    </div>
+
+    <!-- Image Name -->
+    <p id="imageName"
+       class="text-sm text-teal-700 font-medium hidden text-center break-all">
+    </p>
+
+  <!-- Uploaded By -->
+<input id="uploadedBy" type="text" placeholder="Uploaded By"
+       value="{{ username }}"
+       class="w-full border border-gray-300 rounded-lg p-3
+              focus:outline-none focus:ring-2 focus:ring-teal-400"
+       readonly/>
+
+<!-- POST / UPLOAD BUTTON -->
+<button id="postBtn"
+        class="w-full bg-teal-500 hover:bg-teal-400 text-white font-semibold
+               py-3 rounded-lg shadow-md flex items-center justify-center gap-2
+               transition-all">
+  <span id="btnText">Upload</span>
+  <svg id="loader" class="hidden h-5 w-5 animate-spin"
+       xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <circle class="opacity-25" cx="12" cy="12" r="10"
+            stroke="currentColor" stroke-width="4"></circle>
+    <path class="opacity-75" fill="currentColor"
+          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+  </svg>
+</button>
+  </div>
+
+  <!-- Modal -->
+  <div id="modal"
+    class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center hidden z-50">
+
+    <div id="modalContent"
+      class="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-xl">
+
+      <div id="modalIcon"
+        class="mx-auto mb-4 w-16 h-16 rounded-full flex items-center justify-center">
+      </div>
+
+      <h2 id="modalTitle" class="text-xl font-bold mb-2"></h2>
+      <p id="modalMessage" class="text-gray-600 mb-6"></p>
+
+      <button id="modalBtn"
+        class="px-6 py-2 rounded-full font-semibold text-white">
+      </button>
+    </div>
+  </div>
+
+<script>
+  const cameraBtn = document.getElementById('cameraBtn');
+  const cameraInput = document.getElementById('cameraInput');
+  const postBtn = document.getElementById('postBtn');
+  const uploadedBy = document.getElementById('uploadedBy');
+  const imageName = document.getElementById('imageName');
+
+  const btnText = document.getElementById('btnText');
+  const loader = document.getElementById('loader');
+
+  const modal = document.getElementById('modal');
+  const modalContent = document.getElementById('modalContent');
+  const modalIcon = document.getElementById('modalIcon');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalMessage = document.getElementById('modalMessage');
+  const modalBtn = document.getElementById('modalBtn');
+
+  let selectedFile = null;
+
+  /* ---------------- CAMERA ---------------- */
+
+  cameraBtn.onclick = () => cameraInput.click();
+
+  cameraInput.onchange = (e) => {
+    selectedFile = e.target.files[0];
+    if (!selectedFile) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const maxSize = 5 * 1024 * 1024;
+
+    if (!allowedTypes.includes(selectedFile.type)) {
+      selectedFile = null;
+      cameraInput.value = '';
+      return showModal('failed', 'FAILED!', 'Only JPG, PNG, WEBP allowed.', 'TRY AGAIN');
+    }
+
+    if (selectedFile.size > maxSize) {
+      selectedFile = null;
+      cameraInput.value = '';
+      return showModal('failed', 'FAILED!', 'Image must be under 5MB.', 'TRY AGAIN');
+    }
+
+    imageName.textContent = selectedFile.name;
+    imageName.classList.remove('hidden');
+  };
+
+  /* ---------------- INPUT HARDENING (NO LINKS / NO SQL / NO XSS) ---------------- */
+
+  uploadedBy.addEventListener('input', () => {
+    // Allow only safe characters
+    uploadedBy.value = uploadedBy.value.replace(/[^a-zA-Z0-9 ._]/g, '');
+
+    // Block URLs & common SQL/XSS keywords
+    const blockedPattern =
+      /(https?:\/\/|www\.|\.com|\.in|\.net|\.org|select|insert|update|delete|drop|union|script|--|;)/gi;
+
+    if (blockedPattern.test(uploadedBy.value)) {
+      uploadedBy.value = uploadedBy.value.replace(blockedPattern, '');
+    }
+  });
+
+  uploadedBy.addEventListener('paste', (e) => {
+    const text = (e.clipboardData || window.clipboardData).getData('text');
+    const blockedPattern =
+      /(https?:\/\/|www\.|\.com|\.in|\.net|\.org|select|insert|update|delete|drop|union|script|--|;)/gi;
+
+    if (blockedPattern.test(text)) {
+      e.preventDefault();
+      showModal('failed', 'INVALID INPUT', 'Please enter a valid name', 'OK');
+    }
+  });
+
+  /* ---------------- CSRF ---------------- */
+
+  function getCookie(name) {
+    let value = null;
+    document.cookie.split(';').forEach(cookie => {
+      cookie = cookie.trim();
+      if (cookie.startsWith(name + '=')) {
+        value = decodeURIComponent(cookie.substring(name.length + 1));
+      }
+    });
+    return value;
+  }
+
+  /* ---------------- MODAL ---------------- */
+
+  function showModal(type, title, message, btnTextLabel) {
+    modal.classList.remove('hidden');
+
+    modalContent.classList.remove('animate-pop');
+    void modalContent.offsetWidth;
+    modalContent.classList.add('animate-pop');
+
+    if (type === 'success') {
+      modalIcon.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-500"
+             fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                d="M5 13l4 4L19 7"/>
+        </svg>`;
+      modalIcon.className =
+        'mx-auto mb-4 w-16 h-16 rounded-full bg-green-100 flex items-center justify-center';
+      modalBtn.className =
+        'px-6 py-2 rounded-full font-semibold text-white bg-green-500 hover:bg-green-600';
+    } else {
+      modalIcon.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-500"
+             fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                d="M6 18L18 6M6 6l12 12"/>
+        </svg>`;
+      modalIcon.className =
+        'mx-auto mb-4 w-16 h-16 rounded-full bg-red-100 flex items-center justify-center';
+      modalBtn.className =
+        'px-6 py-2 rounded-full font-semibold text-white bg-red-500 hover:bg-red-600';
+    }
+
+    modalTitle.textContent = title;
+    modalMessage.textContent = message;
+    modalBtn.textContent = btnTextLabel;
+
+    modalBtn.onclick = () => {
+      modal.classList.add('hidden');
+
+      cameraInput.value = '';
+      selectedFile = null;
+      imageName.textContent = '';
+      imageName.classList.add('hidden');
+      btnText.textContent = 'Upload';
+    };
+  }
+
+  /* ---------------- SUBMIT ---------------- */
+
+  postBtn.onclick = async () => {
+    const name = uploadedBy.value.trim();
+
+    if (!selectedFile)
+      return showModal('failed', 'FAILED!', 'Please select an image.', 'TRY AGAIN');
+
+    if (!name)
+      return showModal('failed', 'FAILED!', 'Please enter uploader name.', 'TRY AGAIN');
+
+    postBtn.disabled = true;
+    loader.classList.remove('hidden');
+    btnText.textContent = 'Uploading...';
+    postBtn.classList.add('opacity-80');
+
+    try {
+      const formData = new FormData();
+      formData.append('image', selectedFile);
+      formData.append('name', name);
+
+      const res = await fetch('/upload/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+        body: formData
+      });
+
+      const data = await res.json();
+
+      if (data.status === 'success')
+        showModal('success', 'SUCCESS!', 'File uploaded successfully.', 'CONTINUE');
+      else
+        showModal('failed', 'FAILED!', 'Upload failed.', 'TRY AGAIN');
+
+    } catch {
+      showModal('failed', 'FAILED!', 'Server error.', 'TRY AGAIN');
+    } finally {
+      postBtn.disabled = false;
+      loader.classList.add('hidden');
+      postBtn.classList.remove('opacity-80');
+      btnText.textContent = 'Upload';
+    }
+  };
+</script>
+
+
+
+</body>
+</html>

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+
+<body class="min-h-screen flex text-white
+bg-gradient-to-br from-[#1a0826] via-[#3b0f4a] to-[#0f1c3f]">
+
+<!-- SIDEBAR -->
+<aside class="w-64 hidden md:flex flex-col h-screen sticky top-0
+bg-gradient-to-b from-[#2b0f3a] to-[#14091f]
+border-r border-white/10">
+
+  <div class="p-6 text-xl font-bold text-purple-300 border-b border-white/10">
+    Admin Panel
+  </div>
+
+  <nav class="flex-1 p-4 space-y-2 text-purple-200">
+    <a href="{% url 'dashboard' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg
+              bg-gradient-to-r from-purple-600/40 to-pink-500/40">
+      Dashboard
+    </a>
+      <a href="{% url 'inbox' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+     Inbox
+    </a>
+    <a href="{% url 'category' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+     Category & Sub Category
+    </a>
+    <a href="{% url 'state_district' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+     State & District
+    </a>
+    <a href="{% url 'data' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+    Quick Entry
+    </a>
+      <a href="{% url 'data_list' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+    Uploads
+    </a>
+      <a href="{% url 'usercreate' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+   Create Users
+    </a>
+       <a href="{% url 'userlist' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+   Users
+    </a>
+
+  </nav>
+
+  <div class="p-4 border-t border-white/10">
+    <a href="{% url 'superuser_logout' %}"
+       class="block text-center bg-gradient-to-r from-pink-500 to-red-500
+              text-white py-2 rounded-lg hover:opacity-90">
+      Logout
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="flex-1 flex flex-col">
+
+<!-- TOP BAR -->
+<header class="px-6 h-[4.78rem] flex justify-between items-center
+sticky top-0 z-40
+bg-white/5 backdrop-blur-xl border-b border-white/10">
+
+  <h1 class="text-xl font-semibold text-purple-200">Dashboard</h1>
+
+  <div class="flex items-center gap-3">
+    <div class="w-10 h-10 rounded-full
+                bg-gradient-to-r from-purple-500 to-pink-500
+                flex items-center justify-center font-bold">
+      {{ request.user.username|first|upper }}
+    </div>
+    <span class="text-purple-200 font-medium">
+      {{ request.user.username }}
+    </span>
+  </div>
+</header>
+
+<!-- CONTENT -->
+<main class="p-6 space-y-6">
+
+<!-- STATS -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+  <div class="bg-white/10 backdrop-blur p-5 rounded-xl border border-white/10">
+    <p class="text-sm text-purple-200">Inbox</p>
+    <h2 class="text-3xl font-bold text-lime-400 mt-1">{{ total_uploads }}</h2>
+  </div>
+
+  <div class="bg-white/10 backdrop-blur p-5 rounded-xl border border-white/10">
+    <p class="text-sm text-purple-200">Today Uploads</p>
+    <h2 class="text-3xl font-bold text-cyan-400 mt-1">{{ today_uploads }}</h2>
+  </div>
+
+  <div class="bg-white/10 backdrop-blur p-5 rounded-xl border border-white/10">
+    <p class="text-sm text-purple-200"> Categories</p>
+    <h2 class="text-3xl font-bold text-lime-400 mt-1">{{ total_categories }}</h2>
+  </div>
+
+  <div class="bg-white/10 backdrop-blur p-5 rounded-xl border border-white/10">
+    <p class="text-sm text-purple-200">Active Users</p>
+    <h2 class="text-3xl font-semibold text-lime-400 mt-2">{{ total_unique_upload_names }}</h2>
+  </div>
+
+</div>
+
+<!-- GRAPH + USERS -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+<!-- GRAPH -->
+<div class="lg:col-span-2 bg-gradient-to-br from-[#2b0f3a]/80 to-[#14091f]/80
+rounded-xl shadow-xl p-4 border border-white/10 h-64">
+
+  <div class="flex justify-between mb-2">
+    <h2 class="text-sm font-semibold text-purple-200">
+      Uploads Over Time
+    </h2>
+    <span class="text-xs text-purple-300">Last 7 days</span>
+  </div>
+
+  <div class="relative h-44 w-full">
+  <canvas id="uploadChart"></canvas>
+</div>
+
+</div>
+
+<!-- USERS -->
+<div class="bg-gradient-to-br from-[#2b0f3a]/80 to-[#14091f]/80
+rounded-xl shadow-xl p-4 h-64 flex flex-col border border-white/10">
+
+  <h2 class="text-sm font-semibold text-purple-200 mb-3">Users</h2>
+
+  <div class="space-y-3 overflow-y-auto scrollbar-hide pr-1">
+
+    {% for upload in recent_uploads|slice:":20" %}
+    <div class="flex items-center justify-between">
+
+      <div class="flex items-center gap-3">
+        <img src="{{ upload.image.url }}"
+             class="w-8 h-8 rounded-md object-cover border border-white/20">
+        <div>
+          <p class="text-sm font-medium">{{ upload.name }}</p>
+          <p class="text-xs text-purple-300">
+            {{ upload.created_at|date:"d M" }}
+          </p>
+        </div>
+      </div>
+
+      <div class="w-20 h-2 bg-white/10 rounded-full overflow-hidden">
+        <div class="h-full bg-gradient-to-r from-lime-400 via-cyan-400 to-pink-500"
+             style="width: {{ forloop.counter|add:2 }}0%;"></div>
+      </div>
+
+    </div>
+    {% endfor %}
+
+  </div>
+</div>
+
+</div>
+
+<!-- TABLE -->
+<div class="bg-white/10 backdrop-blur rounded-xl shadow border border-white/10 overflow-hidden">
+
+  <div class="p-4 border-b border-white/10 text-purple-200 font-semibold">
+    Recent Uploads
+  </div>
+
+  <table class="w-full text-sm">
+    <thead class="bg-white/5 text-purple-300">
+      <tr>
+        <th class="text-left px-4 py-3">Upload</th>
+        <th class="text-left px-4 py-3">Date</th>
+      </tr>
+    </thead>
+
+    <tbody class="divide-y divide-white/10">
+      {% for upload in recent_uploads %}
+      <tr class="hover:bg-white/5">
+        <td class="px-4 py-3">
+          <div class="flex items-center gap-3">
+            <img src="{{ upload.image.url }}"
+                 class="w-10 h-10 rounded-lg object-cover border border-white/20">
+            <p class="font-medium">{{ upload.name }}</p>
+          </div>
+        </td>
+        <td class="px-4 py-3 text-purple-300">
+          {{ upload.created_at|date:"d M Y" }}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="2" class="px-4 py-6 text-center text-purple-300">
+          No uploads yet
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</div>
+
+</main>
+</div>
+
+<script>
+const ctx = document.getElementById('uploadChart').getContext('2d');
+
+const gradient = ctx.createLinearGradient(0, 0, 0, 220);
+gradient.addColorStop(0, 'rgba(163,230,53,0.45)');
+gradient.addColorStop(1, 'rgba(163,230,53,0.05)');
+
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: {{ labels|safe }},
+    datasets: [{
+      data: {{ data|safe }},
+      borderColor: '#a3e635',
+      backgroundColor: gradient,
+      borderWidth: 3,
+      tension: 0.45,
+      fill: true,
+      pointRadius: 4,
+      pointHoverRadius: 6
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+
+    layout: {
+      padding: {
+        left: 0,
+        right: 0,
+        top: 10,
+        bottom: 0
+      }
+    },
+
+    plugins: {
+      legend: { display: false }
+    },
+
+    scales: {
+      x: {
+        offset: false,
+        ticks: {
+          color: '#d8b4fe',
+          padding: 6
+        },
+        grid: {
+          color: 'rgba(255,255,255,0.06)'
+        }
+      },
+      y: {
+        beginAtZero: true,
+        ticks: {
+          color: '#d8b4fe',
+          precision: 0
+        },
+        grid: {
+          color: 'rgba(255,255,255,0.06)'
+        }
+      }
+    }
+  }
+});
+</script>
+
+</body>
+</html>

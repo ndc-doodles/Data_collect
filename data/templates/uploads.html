@@ -1,0 +1,888 @@
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <style>
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { scrollbar-width: none; }
+
+    .input-sm{
+      width:100%;
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:.5rem;
+      padding:.45rem .7rem;
+      font-size:.8rem;
+      color:white;
+      outline:none;
+    }
+    .input-sm::placeholder{ color:#c4b5fd }
+    .input-sm:focus{
+      border-color:#a855f7;
+      box-shadow:0 0 0 1px rgba(168,85,247,.4)
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex text-white bg-gradient-to-br from-[#1a0826] via-[#3b0f4a] to-[#0f1c3f]">
+<!-- SIDEBAR -->
+<aside class="w-64 hidden md:flex flex-col h-screen sticky top-0
+bg-gradient-to-b from-[#2b0f3a] to-[#14091f]
+border-r border-white/10">
+
+  <div class="p-6 text-xl font-bold text-purple-300 border-b border-white/10">
+    Admin Panel
+  </div>
+
+  <nav class="flex-1 p-4 space-y-2 text-purple-200">
+   <a href="{% url 'dashboard' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+      Dashboard
+    </a>
+      <a href="{% url 'inbox' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+     Inbox
+    </a>
+    <a href="{% url 'category' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+      Category & Sub Category
+    </a>
+    <a href="{% url 'state_district' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+     State & District
+    </a>
+    <a href="{% url 'data' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+     Quick Entry
+    </a>
+      <a href="{% url 'data_list' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg
+              bg-gradient-to-r from-purple-600/40 to-pink-500/40">
+    Uploads
+    </a>
+      <a href="{% url 'usercreate' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+   Create Users
+    </a>
+       <a href="{% url 'userlist' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+   Users
+    </a>
+  </nav>
+
+  <div class="p-4 border-t border-white/10">
+    <a href="{% url 'superuser_logout' %}"
+       class="block text-center bg-gradient-to-r from-pink-500 to-red-500
+              text-white py-2 rounded-lg hover:opacity-90">
+      Logout
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="flex-1 flex flex-col">
+
+<header class="px-6 h-[4.78rem] flex justify-between items-center
+bg-white/5 backdrop-blur-xl border-b border-white/10">
+  <h1 class="text-xl font-semibold text-purple-200">Uploads</h1>
+</header>
+
+<main class="p-5 max-w-5xl mx-auto space-y-5">
+
+  <!-- PAGE TITLE -->
+  <div>
+    <h2 class="text-lg font-semibold text-purple-200">Data Management</h2>
+    <p class="text-xs text-purple-300/70">
+      View, filter, edit and delete records
+    </p>
+  </div>
+
+<form method="GET"
+      class="bg-white/5 border border-white/10 rounded-xl
+             p-3 flex flex-wrap gap-2 items-center relative z-20">
+
+
+
+  <!-- Search -->
+  <input type="text" name="search" value="{{ request.GET.search }}"
+         placeholder="Search name / phone / email"
+         class="input-sm w-52 flex-shrink-0">
+
+<!-- Category -->
+<div class="dropdown sm:w-36 flex-shrink-0">
+  <input type="hidden" name="category" id="categoryInput"
+         value="{{ request.GET.category|default:'' }}">
+
+  <button type="button"
+          class="dropdown-btn"
+          onclick="toggleDropdown('catMenu','catIcon')">
+
+    <span id="catLabel" data-default="Select Category">
+  {% if request.GET.category %}
+    {{ categories|get_name_by_id:request.GET.category }}
+  {% else %}
+    Select Category
+  {% endif %}
+</span>
+
+
+    <i id="catIcon" class="fa-solid fa-chevron-down chevron"></i>
+  </button>
+
+  <div id="catMenu" class="dropdown-menu">
+    {% for c in categories %}
+      <div class="dropdown-item"
+           onclick="
+             selectOption(
+               'categoryInput','catLabel',
+               '{{ c.id }}','{{ c.name }}',
+               'catMenu','catIcon'
+             );
+             loadSubcategories('{{ c.id }}');
+           ">
+        {{ c.name }}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+  <!-- Subcategory -->
+<div class="dropdown sm:w-36 flex-shrink-0">
+  <input type="hidden" name="subcategory" id="subcategoryInput" value="{{ request.GET.subcategory }}">
+  <button type="button" class="dropdown-btn" onclick="toggleDropdown('subcatMenu','subcatIcon')">
+    <span id="subcatLabel">
+      {% if request.GET.subcategory %}
+        {{ subcategories|get_name_by_id:request.GET.subcategory }}
+      {% else %}
+        Select Subcategory
+      {% endif %}
+    </span>
+    <i id="subcatIcon" class="fa-solid fa-chevron-down chevron"></i>
+  </button>
+
+  <!-- IMPORTANT: empty menu -->
+  <div id="subcatMenu" class="dropdown-menu"></div>
+</div>
+
+<!-- State -->
+<div class="dropdown sm:w-28 flex-shrink-0">
+  <input type="hidden" name="state" id="stateInput"
+         value="{{ request.GET.state|default:'' }}">
+
+  <button type="button"
+          class="dropdown-btn"
+          onclick="toggleDropdown('stateMenu','stateIcon')">
+
+    <span id="stateLabel" data-default="Select State">
+  {% if request.GET.state %}
+    {{ states|get_name_by_id:request.GET.state }}
+  {% else %}
+    Select State
+  {% endif %}
+</span>
+
+
+    <i id="stateIcon" class="fa-solid fa-chevron-down chevron"></i>
+  </button>
+
+  <div id="stateMenu" class="dropdown-menu">
+    {% for st in states %}
+      <div class="dropdown-item"
+           onclick="
+             selectOption(
+               'stateInput','stateLabel',
+               '{{ st.id }}','{{ st.name }}',
+               'stateMenu','stateIcon'
+             );
+             loadDistricts('{{ st.id }}');
+           ">
+        {{ st.name }}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+  <!-- District -->
+<div class="dropdown sm:w-28 flex-shrink-0">
+  <input type="hidden" name="district" id="districtInput" value="{{ request.GET.district }}">
+  <button type="button" class="dropdown-btn" onclick="toggleDropdown('districtMenu','districtIcon')">
+    <span id="districtLabel">
+      {% if request.GET.district %}
+        {{ districts|get_name_by_id:request.GET.district }}
+      {% else %}
+        Select District
+      {% endif %}
+    </span>
+    <i id="districtIcon" class="fa-solid fa-chevron-down chevron"></i>
+  </button>
+
+  <!-- IMPORTANT: empty menu -->
+  <div id="districtMenu" class="dropdown-menu"></div>
+</div>
+
+  <!-- Date -->
+  <input type="date" name="date" value="{{ request.GET.date }}"
+         class="input-sm w-32 flex-shrink-0">
+
+  <!-- Apply Button -->
+  <button type="submit"
+          class="px-4 py-1.5 rounded-lg text-xs font-medium
+                 bg-gradient-to-r from-purple-600 to-pink-600
+                 hover:opacity-90 transition flex-shrink-0">
+    Apply
+  </button>
+<!-- Clear Button -->
+<button type="button"
+        onclick="clearFilters()"
+        class="px-4 py-1.5 rounded-lg text-xs font-medium
+               bg-gray-600/50 hover:bg-gray-600 transition flex-shrink-0">
+  Clear
+</button>
+
+</form>
+
+  <!-- TABLE CARD -->
+  <form method="POST">
+    {% csrf_token %}
+
+    <div class="bg-white/5 border border-white/10 rounded-xl ">
+
+     <div class="px-4 py-2.5 border-b border-white/10
+            flex items-center justify-between">
+
+  <h3 class="text-xs font-semibold text-purple-200">
+    Records
+  </h3>
+
+  <div class="flex items-center gap-2">
+    <!-- EXPORT -->
+    <a href="{% url 'data_export' %}?{{ request.GET.urlencode }}"
+       class="px-3 py-1 text-[11px] rounded-md
+              bg-emerald-600/80 hover:bg-emerald-600 transition
+              flex items-center gap-1">
+      <i class="fa-solid fa-file-excel"></i>
+      Export
+    </a>
+
+    <!-- DELETE -->
+    <button
+      onclick="return confirm('Delete selected items?')"
+      class="px-3 py-1 text-[11px] rounded-md
+             bg-red-600/80 hover:bg-red-600 transition">
+      Delete Selected
+    </button>
+  </div>
+
+</div>
+
+      <!-- TABLE -->
+      <div class="overflow-x-auto">
+        <table class="w-full table-fixed text-xs">
+
+          <thead class="bg-white/10 text-purple-200">
+            <tr>
+              <th class="px-2 py-2 w-9 text-center">
+                <input type="checkbox" onclick="toggleAll(this)">
+              </th>
+              <th class="px-2 py-2 w-[140px]">Name</th>
+              <th class="px-2 py-2 w-[120px]">Category</th>
+              <th class="px-2 py-2 w-[90px]">State</th>
+              <th class="px-2 py-2 w-[90px]">Date</th>
+              <th class="px-2 py-2 w-[96px] text-right">Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+          {% for d in data_list %}
+            <tr class="border-t border-white/10 hover:bg-white/5 transition">
+
+              <td class="px-2 py-1.5 text-center">
+                <input type="checkbox" name="selected" value="{{ d.id }}">
+              </td>
+
+              <td class="px-2 py-1.5 font-medium truncate" title="{{ d.name }}">
+                {{ d.name }}
+              </td>
+
+              <td class="px-2 py-1.5 truncate" title="{{ d.category.name }}">
+                {{ d.category.name }}
+              </td>
+
+              <td class="px-2 py-1.5 truncate" title="{{ d.state.name }}">
+                {{ d.state.name }}
+              </td>
+
+              <td class="px-2 py-1.5 text-purple-300">
+                {{ d.created_at|date:"d M Y" }}
+              </td>
+
+              <td class="px-2 py-1.5 text-right space-x-1">
+                <button
+  type="button"
+  class="p-1.5 rounded bg-cyan-600/80 hover:bg-cyan-600 edit-btn"
+  data-id="{{ d.id }}"
+  data-name="{{ d.name }}"
+  data-phone="{{ d.phone }}"
+  data-email="{{ d.email }}"
+  data-location="{{ d.location }}"
+  data-data_given="{{ d.data_given }}"
+  data-staff="{{ d.staff }}"
+  data-user="{{ d.user }}"
+  data-remarks="{{ d.remarks }}"
+  data-source="{{ d.source }}"
+  data-paid="{{ d.paid|yesno:'true,false' }}"
+  data-category="{{ d.category_id|default:'' }}"
+  data-subcategory="{{ d.subcategory_id|default:'' }}"
+  data-state="{{ d.state_id|default:'' }}"
+  data-district="{{ d.district_id|default:'' }}"
+>
+  <i class="fa-solid fa-pen-to-square text-[11px]"></i>
+</button>
+
+
+
+                <button
+                  name="delete_id"
+                  value="{{ d.id }}"
+                  onclick="return confirm('Delete this item?')"
+                  class="p-1.5 rounded bg-red-600/80 hover:bg-red-600">
+                  <i class="fa-solid fa-trash-can text-[11px]"></i>
+                </button>
+              </td>
+
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6"
+                class="px-6 py-8 text-center text-purple-300/70">
+                No data found
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+
+        </table>
+      </div>
+
+    </div>
+  </form>
+
+</main>
+
+
+
+</div>
+
+
+<!-- EDIT MODAL -->
+<div id="editModal"
+  class="fixed inset-0 z-[999] hidden items-center justify-center
+         bg-black/60 backdrop-blur-sm">
+
+  <form method="POST"
+    class="bg-[#14091f] w-full max-w-lg rounded-2xl
+           border border-white/10 p-6 space-y-4">
+
+    {% csrf_token %}
+    <input type="hidden" name="edit_id" id="edit_id">
+
+    <h3 class="text-lg font-semibold text-purple-200">
+      Edit Data
+    </h3>
+
+    <div class="grid grid-cols-2 gap-3">
+
+      <input name="name" id="edit_name" class="input-sm" placeholder="Name">
+      <input name="phone" id="edit_phone" class="input-sm" placeholder="Phone">
+      <input name="email" id="edit_email" class="input-sm" placeholder="Email">
+      <input name="location" id="edit_location" class="input-sm" placeholder="Location">
+
+      <!-- CATEGORY -->
+<select name="category" id="edit_category" class="input-sm">
+  <option value="">Select Category</option>
+  {% for c in categories %}
+    <option value="{{ c.id }}">{{ c.name }}</option>
+  {% endfor %}
+</select>
+
+<!-- SUBCATEGORY -->
+<select name="subcategory" id="edit_subcategory" class="input-sm">
+  <option value="">Select Subcategory</option>
+</select>
+
+<!-- STATE -->
+<select name="state" id="edit_state" class="input-sm">
+  <option value="">Select State</option>
+  {% for s in states %}
+    <option value="{{ s.id }}">{{ s.name }}</option>
+  {% endfor %}
+</select>
+
+<!-- DISTRICT -->
+<select name="district" id="edit_district" class="input-sm">
+  <option value="">Select District</option>
+</select>
+
+
+      <input name="data_given" id="edit_data_given" class="input-sm" placeholder="Data Given">
+      <input name="staff" id="edit_staff" class="input-sm" placeholder="Staff">
+      <input
+    name="user"
+    id="edit_user"
+    class="input-sm bg-gray-700 text-gray-200 cursor-not-allowed"
+    placeholder="User"
+    value="{{ request.user.username }}"
+    readonly
+>
+      <input name="source" id="edit_source" class="input-sm" placeholder="Source">
+
+      <textarea name="remarks" id="edit_remarks"
+        class="input-sm col-span-2" rows="2"
+        placeholder="Remarks"></textarea>
+
+      <!-- PAID -->
+      <div class="col-span-2 flex items-center gap-3 pt-1">
+        <input type="checkbox" name="paid" id="edit_paid"
+          class="w-4 h-4 accent-purple-600 cursor-pointer">
+        <label for="edit_paid" class="text-sm text-gray-300 cursor-pointer">
+          Paid
+        </label>
+      </div>
+
+    </div>
+
+    <div class="flex justify-end gap-2 pt-3">
+      <button type="button"
+        onclick="closeEditModal()"
+        class="px-4 py-2 rounded-lg text-sm bg-white/10">
+        Cancel
+      </button>
+
+      <button
+        type="submit"
+        class="px-4 py-2 rounded-lg text-sm
+               bg-gradient-to-r from-purple-600 to-pink-600">
+        Save
+      </button>
+    </div>
+
+  </form>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  /* ================= SELECT ALL CHECKBOX ================= */
+  window.toggleAll = function(source) {
+    document.querySelectorAll('input[name="selected"]').forEach(
+      cb => cb.checked = source.checked
+    );
+  };
+
+  /* ================= SELECT OPTION HELPER (SAFE) ================= */
+  function selectOption(inputId, labelId, value, text, menuId, iconId) {
+    const input = document.getElementById(inputId);
+    const label = document.getElementById(labelId);
+    const menu = document.getElementById(menuId);
+    const icon = document.getElementById(iconId);
+
+    if (input) input.value = value || "";
+
+    if (label) {
+      label.textContent = text && text.trim()
+        ? text
+        : label.dataset.default || "Select";
+    }
+
+    if (menu) menu.classList.remove("open");
+    if (icon) icon.classList.remove("rotate");
+  }
+  window.selectOption = selectOption;
+
+  /* ================= DROPDOWN TOGGLE ================= */
+  function toggleDropdown(menuId, iconId) {
+    const menu = document.getElementById(menuId);
+    const icon = document.getElementById(iconId);
+
+    document.querySelectorAll(".dropdown-menu").forEach(m => {
+      if (m.id !== menuId) m.classList.remove("open");
+    });
+    document.querySelectorAll(".chevron").forEach(i => {
+      if (i.id !== iconId) i.classList.remove("rotate");
+    });
+
+    menu.classList.toggle("open");
+    icon.classList.toggle("rotate");
+  }
+  window.toggleDropdown = toggleDropdown;
+
+  document.addEventListener("click", e => {
+    if (!e.target.closest(".dropdown")) {
+      document.querySelectorAll(".dropdown-menu").forEach(m => m.classList.remove("open"));
+      document.querySelectorAll(".chevron").forEach(i => i.classList.remove("rotate"));
+    }
+  });
+
+  /* ================= FILTER SUBCATEGORIES ================= */
+  window.loadSubcategories = function (
+    categoryId,
+    menuId = "subcatMenu",
+    labelId = "subcatLabel",
+    inputId = "subcategoryInput",
+    selectedId = null
+  ) {
+    const menu = document.getElementById(menuId);
+    const label = document.getElementById(labelId);
+    const input = document.getElementById(inputId);
+
+    menu.innerHTML = "";
+
+    if (!categoryId) {
+      label.textContent = "Select Subcategory";
+      input.value = "";
+      return;
+    }
+
+    fetch(`/get-subcategories/${categoryId}/`)
+      .then(res => res.json())
+      .then(data => {
+        let found = false;
+
+        data.forEach(s => {
+          if (selectedId && String(s.id) === String(selectedId)) {
+            label.textContent = s.name;
+            input.value = s.id;
+            found = true;
+          }
+
+          const div = document.createElement("div");
+          div.className = "dropdown-item";
+          div.textContent = s.name;
+          div.onclick = () =>
+            selectOption(inputId, labelId, s.id, s.name, menuId, "subcatIcon");
+
+          menu.appendChild(div);
+        });
+
+        if (!found) {
+          label.textContent = "Select Subcategory";
+          input.value = "";
+        }
+      })
+      .catch(console.error);
+  };
+
+  /* ================= FILTER DISTRICTS ================= */
+  window.loadDistricts = function (
+    stateId,
+    menuId = "districtMenu",
+    labelId = "districtLabel",
+    inputId = "districtInput",
+    selectedId = null
+  ) {
+    const menu = document.getElementById(menuId);
+    const label = document.getElementById(labelId);
+    const input = document.getElementById(inputId);
+
+    menu.innerHTML = "";
+
+    if (!stateId) {
+      label.textContent = "Select District";
+      input.value = "";
+      return;
+    }
+
+    fetch(`/get-districts/${stateId}/`)
+      .then(res => res.json())
+      .then(data => {
+        let found = false;
+
+        data.forEach(d => {
+          if (selectedId && String(d.id) === String(selectedId)) {
+            label.textContent = d.name;
+            input.value = d.id;
+            found = true;
+          }
+
+          const div = document.createElement("div");
+          div.className = "dropdown-item";
+          div.textContent = d.name;
+          div.onclick = () =>
+            selectOption(inputId, labelId, d.id, d.name, menuId, "districtIcon");
+
+          menu.appendChild(div);
+        });
+
+        if (!found) {
+          label.textContent = "Select District";
+          input.value = "";
+        }
+      })
+      .catch(console.error);
+  };
+
+  /* ================= EDIT SELECT HELPERS ================= */
+  function loadSubcategoriesSelect(categoryId, selectId, selectedId = "") {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+
+    select.innerHTML = `<option value="">Select Subcategory</option>`;
+    if (!categoryId) return;
+
+    fetch(`/get-subcategories/${categoryId}/`)
+      .then(res => res.json())
+      .then(data => {
+        data.forEach(sub => {
+          const opt = document.createElement("option");
+          opt.value = sub.id;
+          opt.textContent = sub.name;
+          if (String(sub.id) === String(selectedId)) opt.selected = true;
+          select.appendChild(opt);
+        });
+      });
+  }
+
+  function loadDistrictsSelect(stateId, selectId, selectedId = "") {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+
+    select.innerHTML = `<option value="">Select District</option>`;
+    if (!stateId) return;
+
+    fetch(`/get-districts/${stateId}/`)
+      .then(res => res.json())
+      .then(data => {
+        data.forEach(dist => {
+          const opt = document.createElement("option");
+          opt.value = dist.id;
+          opt.textContent = dist.name;
+          if (String(dist.id) === String(selectedId)) opt.selected = true;
+          select.appendChild(opt);
+        });
+      });
+  }
+
+  /* ================= EDIT MODAL ================= */
+  const editModal = document.getElementById("editModal");
+  const editCategory = document.getElementById("edit_category");
+  const editState = document.getElementById("edit_state");
+
+  const clean = v => v && v !== "null" && v !== "None" ? String(v) : "";
+
+  document.querySelectorAll(".edit-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+
+      const setVal = (id,val="") => {
+        const el = document.getElementById(id);
+        if (el) el.value = val || "";
+      };
+
+      setVal("edit_id", btn.dataset.id);
+      setVal("edit_name", btn.dataset.name);
+      setVal("edit_phone", btn.dataset.phone);
+      setVal("edit_email", btn.dataset.email);
+      setVal("edit_location", btn.dataset.location);
+      setVal("edit_data_given", btn.dataset.data_given);
+      setVal("edit_staff", btn.dataset.staff);
+      setVal("edit_user", btn.dataset.user);
+      setVal("edit_source", btn.dataset.source);
+      setVal("edit_remarks", btn.dataset.remarks);
+
+      document.getElementById("edit_paid").checked = btn.dataset.paid === "true";
+
+      const categoryId = clean(btn.dataset.category);
+      const subcategoryId = clean(btn.dataset.subcategory);
+      const stateId = clean(btn.dataset.state);
+      const districtId = clean(btn.dataset.district);
+
+      editCategory.value = categoryId;
+      editState.value = stateId;
+
+      editModal.classList.remove("hidden");
+      editModal.classList.add("flex");
+
+      loadSubcategoriesSelect(categoryId, "edit_subcategory", subcategoryId);
+      loadDistrictsSelect(stateId, "edit_district", districtId);
+    });
+  });
+
+  editCategory.addEventListener("change", () =>
+    loadSubcategoriesSelect(editCategory.value, "edit_subcategory")
+  );
+
+  editState.addEventListener("change", () =>
+    loadDistrictsSelect(editState.value, "edit_district")
+  );
+
+  window.closeEditModal = () => {
+    editModal.classList.add("hidden");
+    editModal.classList.remove("flex");
+  };
+
+  /* ================= AUTO-POPULATE FILTERS ================= */
+  const initialCategory = document.getElementById("categoryInput")?.value;
+  const initialSubcategory = document.getElementById("subcategoryInput")?.value;
+  const initialState = document.getElementById("stateInput")?.value;
+  const initialDistrict = document.getElementById("districtInput")?.value;
+
+  if (initialCategory) {
+    loadSubcategories(
+      initialCategory,
+      "subcatMenu",
+      "subcatLabel",
+      "subcategoryInput",
+      initialSubcategory
+    );
+  }
+
+  if (initialState) {
+    loadDistricts(
+      initialState,
+      "districtMenu",
+      "districtLabel",
+      "districtInput",
+      initialDistrict
+    );
+  }
+
+  /* ---------- RESTORE FILTER LABELS AFTER APPLY ---------- */
+  function restoreLabel(inputId, labelId, menuId) {
+    const input = document.getElementById(inputId);
+    const label = document.getElementById(labelId);
+    const menu = document.getElementById(menuId);
+
+    if (!input || !label || !menu) return;
+
+    if (!input.value) {
+      label.textContent = label.dataset.default || "Select";
+      return;
+    }
+
+    const item = menu.querySelector(
+      `[onclick*="'${input.value}'"]`
+    );
+
+    if (item) {
+      label.textContent = item.textContent.trim();
+    }
+  }
+
+  restoreLabel("categoryInput", "catLabel", "catMenu");
+  restoreLabel("stateInput", "stateLabel", "stateMenu");
+
+window.clearFilters = function() {
+  const form = document.querySelector('form[method="GET"]');
+  if (!form) return;
+
+  // Reset text and date inputs
+  document.querySelector('input[name="search"]').value = "";
+  document.querySelector('input[name="date"]').value = "";
+
+  // Reset hidden dropdown inputs
+  const dropdownInputs = ["categoryInput", "subcategoryInput", "stateInput", "districtInput"];
+  const dropdownLabels = ["catLabel", "subcatLabel", "stateLabel", "districtLabel"];
+
+  dropdownInputs.forEach((id, index) => {
+    const input = document.getElementById(id);
+    const label = document.getElementById(dropdownLabels[index]);
+
+    if (input) input.value = "";
+    if (label) label.textContent = label.dataset.default || "Select";
+  });
+
+  // Clear subcategory & district menus
+  document.getElementById("subcatMenu").innerHTML = "";
+  document.getElementById("districtMenu").innerHTML = "";
+
+  // Submit the form to reload the page with cleared filters
+  form.submit();
+};
+
+
+
+});
+</script>
+
+
+<style>
+/* DROPDOWN WRAPPER */
+.dropdown {
+  position: relative;
+  width: 100%;
+  max-width: 220px;
+  z-index: 50;
+}
+
+/* BUTTON */
+.dropdown-btn {
+  width: 100%;
+  height: 42px;
+  background: linear-gradient(180deg, #6b21a8, #4c1d95);
+  border: 1px solid rgba(168, 85, 247, 0.6);
+  color: #f5d0fe;
+  padding: 0 14px;
+  border-radius: 14px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.dropdown-btn:hover {
+  box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.35);
+}
+
+/* FLOATING MENU (LIKE YOUR IMAGE) */
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 100%;
+  max-height: 220px;
+  background: linear-gradient(180deg, #14021f, #0b0114);
+  border-radius: 16px;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  box-shadow: 0 18px 45px rgba(0,0,0,0.65);
+  padding: 6px;
+  display: none;
+  overflow-y: auto;
+  z-index: 9999;
+}
+
+/* OPEN STATE */
+.dropdown-menu.open {
+  display: block;
+}
+
+/* ITEM */
+.dropdown-item {
+  padding: 9px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  color: #e9d5ff;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.dropdown-item:hover {
+  background: rgba(168, 85, 247, 0.22);
+}
+
+/* CHEVRON */
+.chevron {
+  transition: transform 0.2s ease;
+  font-size: 11px;
+}
+
+.rotate {
+  transform: rotate(180deg);
+}
+
+
+</style>
+
+
+
+</body>
+</html>
