@@ -22,7 +22,7 @@ import re
 from django.utils.dateparse import parse_date
 from .utils import BLOCKED_REGEX
 from django.db.models import Count, Q
-
+from django.contrib.auth import update_session_auth_hash
 
 
 # def index(request):
@@ -110,6 +110,45 @@ def superuser_login(request):
         return redirect('dashboard')
 
     return render(request, 'login.html')
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def superuser_change_password(request):
+    if request.method == "POST":
+        current_password = request.POST.get("current_password", "").strip()
+        new_password = request.POST.get("new_password", "").strip()
+        confirm_password = request.POST.get("confirm_password", "").strip()
+
+        # Basic validation
+        if not current_password or not new_password or not confirm_password:
+            messages.error(request, "All fields are required.")
+            return redirect("superuser_change_password")
+
+        if new_password != confirm_password:
+            messages.error(request, "New passwords do not match.")
+            return redirect("superuser_change_password")
+
+        if len(new_password) < 6:
+            messages.error(request, "Password must be at least 6 characters.")
+            return redirect("superuser_change_password")
+
+        # Verify current password
+        if not request.user.check_password(current_password):
+            messages.error(request, "Current password is incorrect.")
+            return redirect("superuser_change_password")
+
+        # Set new password
+        request.user.set_password(new_password)
+        request.user.save()
+
+        # 🔐 Keep user logged in
+        update_session_auth_hash(request, request.user)
+
+        messages.success(request, "Password changed successfully.")
+        return redirect("superuser_change_password")
+
+    return render(request, "change_password.html")
 
 
 

@@ -18,6 +18,8 @@ urlpatterns = [
     path("get-subcategories/<str:category_id>/", views.get_subcategories, name="get_subcategories"),
     path("get-districts/<str:state_id>/", views.get_districts, name="get_districts"),
     path('usercreate', usercreate, name='usercreate'),
+    path("superuser/change-password/",views.superuser_change_password,name="superuser_change_password"),
+
 
     path("list/", views.data_list, name="data_list"),
     path("data/export/", views.data_export, name="data_export"),
