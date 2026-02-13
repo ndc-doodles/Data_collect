@@ -33,10 +33,17 @@ border-r border-white/10">
     <a href="{% url 'dashboard' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
       Dashboard
     </a>
-      <a href="{% url 'inbox' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg
-              bg-gradient-to-r from-purple-600/40 to-pink-500/40">
-     Inbox
-    </a>
+      <a href="{% url 'inbox' %}"
+   class="relative flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
+
+  Inbox
+
+  <!-- 🔴 Red Dot -->
+  <span id="unreadDot"
+        class="hidden absolute top-2 right-3 w-2.5 h-2.5 bg-red-500 rounded-full">
+  </span>
+</a>
+
    <a href="{% url 'category' %}" class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/10">
      Category & Sub Category
     </a>
@@ -389,6 +396,32 @@ function toggleRemarks(id) {
   }
 }
 </script>
+
+<script>
+async function checkUnreadUploads() {
+  try {
+    const res = await fetch("{% url 'unread_uploads_count' %}", {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    });
+
+    if (!res.ok) return;
+
+    const data = await res.json();
+    const dot = document.getElementById('unreadDot');
+
+    if (data.unread_count > 0) {
+      dot.classList.remove('hidden');
+    } else {
+      dot.classList.add('hidden');
+    }
+  } catch (err) {
+    console.error('Unread check failed', err);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', checkUnreadUploads);
+</script>
+
 
 <style>
     /* hide scrollbar but keep scrolling */

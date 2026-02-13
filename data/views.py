@@ -819,7 +819,10 @@ def userlist(request):
     return render(request, 'userlist.html', context)
 
 
-
+@login_required
+def unread_uploads_count(request):
+    count = Upload.objects.filter(is_opened=False).count()
+    return JsonResponse({'unread_count': count})
 
 
 

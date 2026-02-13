@@ -11,6 +11,7 @@ urlpatterns = [
     path('category/', category, name='category'),
     path("state", views.state_district, name="state_district"),
     path('inbox', inbox, name='inbox'),
+    path('unread-count/', views.unread_uploads_count, name='unread_uploads_count'),
     path("upload/open/<int:pk>/", views.open_upload, name="open_upload"),
     path("upload/delete/<int:pk>/", views.delete_upload, name="delete_upload"),
     path('data',data,name='data'),
