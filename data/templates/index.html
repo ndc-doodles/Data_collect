@@ -94,9 +94,18 @@
       <h2 id="modalTitle" class="text-xl font-bold mb-2"></h2>
       <p id="modalMessage" class="text-gray-600 mb-6"></p>
 
-      <button id="modalBtn"
-        class="px-6 py-2 rounded-full font-semibold text-white">
-      </button>
+      <div class="flex justify-center gap-4">
+  <button id="modalPrimaryBtn"
+    class="px-6 py-2 rounded-full font-semibold text-white">
+  </button>
+
+  <button id="modalSecondaryBtn"
+    class="px-6 py-2 rounded-full font-semibold text-white hidden">
+  </button>
+</div>
+
+
+
     </div>
   </div>
 
@@ -188,40 +197,56 @@
   }
 
   /* ---------------- MODAL ---------------- */
+function showModal(type, title, message) {
+  modal.classList.remove('hidden');
 
-  function showModal(type, title, message, btnTextLabel) {
-    modal.classList.remove('hidden');
+  modalContent.classList.remove('animate-pop');
+  void modalContent.offsetWidth;
+  modalContent.classList.add('animate-pop');
 
-    modalContent.classList.remove('animate-pop');
-    void modalContent.offsetWidth;
-    modalContent.classList.add('animate-pop');
+  const success = type === 'success';
 
-    const success = type === 'success';
+  modalIcon.innerHTML = success
+    ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-500" fill="none"
+         viewBox="0 0 24 24" stroke="currentColor">
+         <path stroke-width="3" d="M5 13l4 4L19 7"/></svg>`
+    : `<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-500" fill="none"
+         viewBox="0 0 24 24" stroke="currentColor">
+         <path stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>`;
 
-    modalIcon.innerHTML = success
-      ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="3" d="M5 13l4 4L19 7"/></svg>`
-      : `<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>`;
+  modalIcon.className =
+    `mx-auto mb-4 w-16 h-16 rounded-full flex items-center justify-center ${
+      success ? 'bg-green-100' : 'bg-red-100'
+    }`;
 
-    modalIcon.className =
-      `mx-auto mb-4 w-16 h-16 rounded-full flex items-center justify-center ${
-        success ? 'bg-green-100' : 'bg-red-100'
-      }`;
+  modalTitle.textContent = title;
+  modalMessage.textContent = message;
 
-    modalBtn.className =
-      `px-6 py-2 rounded-full font-semibold text-white ${
-        success ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
-      }`;
+  /* PRIMARY BUTTON */
+  modalPrimaryBtn.textContent = success ? 'Continue' : 'OK';
+  modalPrimaryBtn.className =
+    'px-6 py-2 rounded-full font-semibold text-white bg-teal-500 hover:bg-teal-600';
 
-    modalTitle.textContent = title;
-    modalMessage.textContent = message;
-    modalBtn.textContent = btnTextLabel;
+  modalPrimaryBtn.onclick = () => {
+    modal.classList.add('hidden');
+    resetFile();
+  };
 
-    modalBtn.onclick = () => {
-      modal.classList.add('hidden');
-      resetFile();
-      btnText.textContent = 'Upload';
+  /* SECONDARY BUTTON (LOGOUT – only on success) */
+  if (success) {
+    modalSecondaryBtn.classList.remove('hidden');
+    modalSecondaryBtn.textContent = 'Logout';
+    modalSecondaryBtn.className =
+      'px-6 py-2 rounded-full font-semibold text-white bg-red-500 hover:bg-red-600';
+
+    modalSecondaryBtn.onclick = () => {
+      document.getElementById('logoutForm').submit();
     };
+  } else {
+    modalSecondaryBtn.classList.add('hidden');
   }
+}
+
 
   /* ---------------- SUBMIT ---------------- */
 
@@ -280,6 +305,10 @@
     }
   };
 </script>
+<form id="logoutForm" method="POST" action="/logout/">
+  {% csrf_token %}
+</form>
+
 
 </body>
 </html>
