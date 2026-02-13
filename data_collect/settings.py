@@ -154,3 +154,11 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 30  # 30 days in seconds
 
 
+TIME_ZONE = 'Asia/Kolkata'
+USE_TZ = True
+
+
+
+
+
+
