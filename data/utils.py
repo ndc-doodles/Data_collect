@@ -19,3 +19,17 @@ def generate_auto_id(model, field_name="id", prefix=""):
                 return code
 
     raise ValueError("All possible ID combinations exhausted")
+
+
+
+import re
+
+# ---------------- BLOCKED PATTERN ----------------
+BLOCKED_REGEX = re.compile(
+    r"(--|;|'|\"|/\*|\*/|<script|</script>|\b(select|insert|delete|drop|update|union|or)\b|https?:\/\/|www\.|\.com|\.net|\.org)",
+    re.IGNORECASE
+)
+
+
+
+

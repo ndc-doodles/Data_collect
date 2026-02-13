@@ -186,6 +186,7 @@ bg-white/5 backdrop-blur-xl border-b border-white/10">
       <tr>
         <th class="px-4 py-3 text-left">Name</th>
         <th class="px-4 py-3">Preview</th>
+          <th class="px-4 py-3 text-left">Remarks</th>
         <th class="px-4 py-3">Status</th>
         <th class="px-4 py-3">Date</th>
         <th class="px-4 py-3 text-right">Actions</th>
@@ -203,6 +204,28 @@ bg-white/5 backdrop-blur-xl border-b border-white/10">
                class="w-12 h-12 rounded-lg object-cover cursor-pointer"
                onclick="openModal('{{ upload.image.url }}', '{{ upload.id }}')">
         </td>
+         <td class="px-4 py-3 max-w-xs align-top">
+  {% if upload.remarks %}
+    <div class="text-purple-200 text-xs leading-relaxed break-words whitespace-normal">
+      <span class="remarks-short" id="short-{{ upload.id }}">
+        {{ upload.remarks|truncatechars:30 }}
+      </span>
+
+      {% if upload.remarks|length > 30 %}
+        <span class="remarks-full hidden" id="full-{{ upload.id }}">
+          {{ upload.remarks }}
+        </span>
+
+        <button onclick="toggleRemarks('{{ upload.id }}')"
+                class="ml-1 text-cyan-400 hover:underline text-xs">
+          Read more
+        </button>
+      {% endif %}
+    </div>
+  {% else %}
+    <span class="text-purple-400 italic text-xs">—</span>
+  {% endif %}
+</td>
 
         <td class="px-4 py-3">
           {% if upload.is_opened %}
@@ -349,8 +372,23 @@ async function downloadImage(url, filename) {
     }
   });
 </script>
+<script>
+function toggleRemarks(id) {
+  const shortText = document.getElementById(`short-${id}`);
+  const fullText = document.getElementById(`full-${id}`);
+  const btn = event.target;
 
-
+  if (fullText.classList.contains("hidden")) {
+    shortText.classList.add("hidden");
+    fullText.classList.remove("hidden");
+    btn.innerText = "Read less";
+  } else {
+    shortText.classList.remove("hidden");
+    fullText.classList.add("hidden");
+    btn.innerText = "Read more";
+  }
+}
+</script>
 
 <style>
     /* hide scrollbar but keep scrolling */
@@ -362,6 +400,11 @@ async function downloadImage(url, filename) {
   display: none;            /* Chrome */
 }
 
+
+
+    .remarks-full {
+  transition: max-height 0.3s ease, opacity 0.2s ease;
+}
 </style>
 
 

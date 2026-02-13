@@ -283,6 +283,7 @@ bg-white/5 backdrop-blur-xl border-b border-white/10">
               <th class="px-2 py-2 w-9 text-center">
                 <input type="checkbox" onclick="toggleAll(this)">
               </th>
+                 <th class="px-2 py-2 w-[140px]">Code</th>
               <th class="px-2 py-2 w-[140px]">Name</th>
               <th class="px-2 py-2 w-[120px]">Category</th>
               <th class="px-2 py-2 w-[90px]">State</th>
@@ -297,6 +298,10 @@ bg-white/5 backdrop-blur-xl border-b border-white/10">
 
               <td class="px-2 py-1.5 text-center">
                 <input type="checkbox" name="selected" value="{{ d.id }}">
+              </td>
+
+                <td class="px-2 py-1.5 font-medium truncate" title="{{ d.name }}">
+               {{ d.id }}
               </td>
 
               <td class="px-2 py-1.5 font-medium truncate" title="{{ d.name }}">

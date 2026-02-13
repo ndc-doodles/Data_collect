@@ -20,7 +20,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_protect
 import re
 from django.utils.dateparse import parse_date
-
+from .utils import BLOCKED_REGEX
 from django.db.models import Count, Q
 
 
@@ -124,7 +124,7 @@ def dashboard(request):
     today = timezone.now().date()
     start_date = today - timedelta(days=6)
 
-    # ================= GRAPH DATA =================
+    # ================= GRAPH DATA (UPLOADS) =================
     raw_uploads = (
         Upload.objects
         .filter(created_at__date__gte=start_date)
@@ -136,8 +136,7 @@ def dashboard(request):
 
     upload_map = {u['day']: u['count'] for u in raw_uploads}
 
-    labels = []
-    data = []
+    labels, data = [], []
     for i in range(7):
         day = start_date + timedelta(days=i)
         labels.append(day.strftime('%d %b'))
@@ -145,18 +144,23 @@ def dashboard(request):
 
     # ================= COUNTS =================
     total_uploads = Upload.objects.count()
+    unread_uploads = Upload.objects.filter(is_opened=False).count()  # unread count
+    total_categories = Category.objects.count()
+    total_users = Userlogin.objects.count()
+    total_data = Data.objects.count()
 
-    total_unique_upload_names = (
-        Upload.objects.values('name').distinct().count()
+    # ================= DATA TABLE =================
+    recent_data = (
+        Data.objects
+        .select_related('category', 'subcategory', 'state', 'district')
+        .order_by('-created_at')[:10]
     )
 
-    total_categories = Category.objects.count()
+    # ================= UPLOADS =================
+    recent_uploads = Upload.objects.order_by('-created_at')[:10]
 
-    # ================= RECENT =================
-    recent_uploads = Upload.objects.select_related('user').order_by('-created_at')[:10]
-
-    # ✅ USERS LIST (latest active first)
-    users = Userlogin.objects.order_by('-last_login')[:20]
+    # ================= USERS =================
+    recent_users = Userlogin.objects.order_by('-last_login')[:10]
 
     context = {
         # graph
@@ -165,20 +169,20 @@ def dashboard(request):
 
         # counts
         'total_uploads': total_uploads,
-        'total_unique_upload_names': total_unique_upload_names,
+        'unread_uploads': unread_uploads,  # add unread count
         'total_categories': total_categories,
+        'total_users': total_users,
+        'total_data': total_data,
 
-        # recent
+        # tables
+        'recent_data': recent_data,
         'recent_uploads': recent_uploads,
 
         # users
-        'users': users,
-        'total_users': Userlogin.objects.count(),
+        'recent_users': recent_users,
     }
 
     return render(request, 'dashboard.html', context)
-
-
 
 @never_cache
 @login_required(login_url='/login/')
@@ -336,9 +340,13 @@ def inbox(request):
     name = request.GET.get("name")
     status = request.GET.get("status")
     date = request.GET.get("date")
+    remarks = request.GET.get("remarks")   # ✅ NEW
 
     if name:
         uploads = uploads.filter(name__icontains=name)
+
+    if remarks:   # ✅ NEW
+        uploads = uploads.filter(remarks__icontains=remarks)
 
     if status == "opened":
         uploads = uploads.filter(is_opened=True)
@@ -349,8 +357,16 @@ def inbox(request):
         uploads = uploads.filter(created_at__date=date)
 
     return render(request, "inbox.html", {
-        "uploads": uploads
+        "uploads": uploads,
+        "filters": {   # optional but useful
+            "name": name,
+            "remarks": remarks,
+            "status": status,
+            "date": date
+        }
     })
+
+
 
 
 # views.py
@@ -477,7 +493,8 @@ def data_list(request):
             Q(name__icontains=search) |
             Q(phone__icontains=search) |
             Q(email__icontains=search) |
-            Q(location__icontains=search)
+            Q(location__icontains=search) |
+            Q(id__icontains=search)
         )
 
     category = request.GET.get("category")
@@ -612,36 +629,62 @@ BLOCKED_REGEX = re.compile(
 @csrf_protect
 @require_http_methods(["GET", "POST"])
 def userlogin(request):
+    # ---------------- AUTO REDIRECT IF LOGGED IN ----------------
+    if request.session.get('user_id'):
+        return redirect('index')
+
     if request.method == "POST":
         username = request.POST.get("username", "").strip()
         password = request.POST.get("password", "").strip()
 
-        # ❌ Empty
+        # ---------------- VALIDATION ----------------
         if not username or not password:
             messages.error(request, "All fields are required.")
             return redirect('userlogin')
 
-        # ❌ Length
         if len(password) < 6:
             messages.error(request, "Password must be at least 6 characters.")
             return redirect('userlogin')
 
-        # 🚫 SQL injection / link block
+        # Block dangerous input
+        import re
+        BLOCKED_REGEX = re.compile(
+            r"(--|;|'|\"|/\*|\*/|<script|</script>|\b(select|insert|delete|drop|update|union|or)\b|https?:\/\/|www\.|\.com|\.net|\.org)",
+            re.IGNORECASE
+        )
         if BLOCKED_REGEX.search(username) or BLOCKED_REGEX.search(password):
             messages.error(request, "Invalid input detected.")
             return redirect('userlogin')
 
-        # ❌ Invalid login
+        # ---------------- AUTHENTICATE USER ----------------
         try:
             user = Userlogin.objects.get(username=username, password=password)
+
+            # ---------------- CHECK IF USER IS ACTIVE ----------------
+            if not user.is_active:
+                messages.error(request, "Your account is disabled. Please contact admin.")
+                return redirect('userlogin')
+
+            # ---------------- SESSION ----------------
             request.session['user_id'] = user.id
             request.session['username'] = user.username
+
+            # ---------------- HANDLE REMEMBER ME ----------------
+            remember = request.POST.get('remember')
+            if remember:
+                request.session.set_expiry(60 * 60 * 24 * 30)  # 30 days
+            else:
+                request.session.set_expiry(0)  # expire on browser close
+
             return redirect('index')
+
         except Userlogin.DoesNotExist:
             messages.error(request, "Invalid username or password.")
             return redirect('userlogin')
 
     return render(request, "userlogin.html")
+
+
 
 def index(request):
     user_id = request.session.get('user_id')
@@ -668,6 +711,7 @@ def index(request):
     if request.method == 'POST' and request.FILES.get('image'):
         try:
             name = request.POST.get('name', '').strip()
+            remarks = request.POST.get('remarks', '').strip()
             image = request.FILES.get('image')
 
             if not name:
@@ -677,14 +721,18 @@ def index(request):
                 )
 
             upload = Upload.objects.create(
+                user=user,
                 name=name,
                 image=image,
-                user=user
+                remarks=remarks if remarks else None
             )
 
             return JsonResponse({
                 'status': 'success',
-                'image_url': upload.image.url
+                'image_url': upload.image.url,
+                'name': upload.name,
+                'remarks': upload.remarks,
+                'created_at': upload.created_at.strftime('%Y-%m-%d %H:%M')
             })
 
         except Exception as e:
@@ -699,19 +747,22 @@ def index(request):
         'username': request.session.get('username'),
         'user_uploads': Upload.objects.filter(user=user).order_by('-created_at'),
     }
+
     return render(request, 'index.html', context)
 
-# LOGOUT VIEW
+
+
 
 def userlogout(request):
     request.session.flush()  # Clear session
     return redirect('userlogin')
 
+
 @never_cache
 @login_required(login_url='/login/')
 @user_passes_test(lambda u: u.is_superuser)
 def userlist(request):
-    users = Userlogin.objects.all().order_by('-last_login')
+    users = Userlogin.objects.all().order_by('-last_login')  # all users
 
     search_query = request.GET.get('search', '')
     if search_query:
@@ -724,9 +775,27 @@ def userlist(request):
     if end_date:
         users = users.filter(last_login__date__lte=parse_date(end_date))
 
-    # Correct related name here
     users = users.annotate(upload_count=Count('uploads'))
 
+    # Handle Enable / Disable via POST
+    if request.method == "POST":
+        action = request.POST.get('action')
+        user_id = request.POST.get('user_id')
+        try:
+            user = Userlogin.objects.get(id=user_id)
+            if action == 'disable':
+                user.is_active = False
+            elif action == 'enable':
+                user.is_active = True
+            user.save()
+            return JsonResponse({
+                'status': 'success',
+                'new_status': 'active' if user.is_active else 'disabled'
+            })
+        except Userlogin.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'User not found'}, status=404)
+
+    # AJAX fetch
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         data = []
         for user in users:
@@ -734,7 +803,8 @@ def userlist(request):
                 'id': user.id,
                 'username': user.username,
                 'last_login': user.last_login.strftime("%d %b %Y %H:%M:%S") if user.last_login else '',
-                'upload_count': user.upload_count
+                'upload_count': user.upload_count,
+                'is_active': user.is_active
             })
         return JsonResponse({'users': data})
 
@@ -747,7 +817,6 @@ def userlist(request):
         'end_date': end_date
     }
     return render(request, 'userlist.html', context)
-
 
 
 

@@ -97,12 +97,19 @@ bg-white/5 backdrop-blur-xl border-b border-white/10">
 
   <div class="bg-white/10 backdrop-blur p-5 rounded-xl border border-white/10">
     <p class="text-sm text-purple-200">Inbox</p>
-    <h2 class="text-3xl font-bold text-lime-400 mt-1">{{ total_uploads }}</h2>
+   <h2 class="text-3xl font-bold text-lime-400 mt-1">
+  {{ total_uploads }}
+  {% if unread_uploads > 0 %}
+    <span class="text-red-500 font-semibold">({{ unread_uploads }})</span>
+  {% endif %}
+</h2>
+
+
   </div>
 
   <div class="bg-white/10 backdrop-blur p-5 rounded-xl border border-white/10">
-    <p class="text-sm text-purple-200">Today Uploads</p>
-    <h2 class="text-3xl font-bold text-cyan-400 mt-1">{{ today_uploads }}</h2>
+    <p class="text-sm text-purple-200">Total Uploads</p>
+    <h2 class="text-3xl font-bold text-lime-400 mt-1">{{ total_data }}</h2>
   </div>
 
   <div class="bg-white/10 backdrop-blur p-5 rounded-xl border border-white/10">
@@ -112,7 +119,7 @@ bg-white/5 backdrop-blur-xl border-b border-white/10">
 
   <div class="bg-white/10 backdrop-blur p-5 rounded-xl border border-white/10">
     <p class="text-sm text-purple-200">Active Users</p>
-    <h2 class="text-3xl font-semibold text-lime-400 mt-2">{{ total_unique_upload_names }}</h2>
+    <h2 class="text-3xl font-semibold text-lime-400 mt-2">{{ total_users }}</h2>
   </div>
 
 </div>
@@ -145,7 +152,7 @@ rounded-xl shadow-xl p-4 h-64 flex flex-col border border-white/10">
 
   <div class="space-y-3 overflow-y-auto scrollbar-hide pr-1">
 
-    {% for user in users %}
+    {% for user in recent_users %}
     <div class="flex items-center justify-between">
 
       <div class="flex items-center gap-3">
@@ -177,51 +184,64 @@ rounded-xl shadow-xl p-4 h-64 flex flex-col border border-white/10">
     {% endfor %}
 
   </div>
+
+
 </div>
 
 </div>
 
 <!-- TABLE -->
-<div class="bg-white/10 backdrop-blur rounded-xl shadow border border-white/10 overflow-hidden">
+<div class="bg-white/10 backdrop-blur rounded-xl shadow border border-white/10
+            overflow-hidden min-h-[120px] max-h-[420px]">
 
+  <!-- Header stays fixed -->
   <div class="p-4 border-b border-white/10 text-purple-200 font-semibold">
-    Recent Uploads
+    Recent Data
   </div>
 
-  <table class="w-full text-sm">
-    <thead class="bg-white/5 text-purple-300">
-      <tr>
-        <th class="text-left px-4 py-3">Upload</th>
-        <th class="text-left px-4 py-3">Date</th>
-      </tr>
-    </thead>
+  <!-- 👇 Scrollable table container -->
+  <div class="overflow-y-auto scrollbar-hide max-h-[360px]">
+    <table class="w-full text-sm">
+      <thead class="bg-white/5 text-purple-300 sticky top-0 z-10">
+        <tr>
+          <th class="text-left px-4 py-3">ID</th>
+          <th class="text-left px-4 py-3">Name</th>
+          <th class="text-left px-4 py-3">Phone</th>
+          <th class="text-left px-4 py-3">Category</th>
+          <th class="text-left px-4 py-3">Paid</th>
+          <th class="text-left px-4 py-3">Date</th>
+        </tr>
+      </thead>
 
-    <tbody class="divide-y divide-white/10">
-      {% for upload in recent_uploads %}
-      <tr class="hover:bg-white/5">
-        <td class="px-4 py-3">
-          <div class="flex items-center gap-3">
-            <img src="{{ upload.image.url }}"
-                 class="w-10 h-10 rounded-lg object-cover border border-white/20">
-            <p class="font-medium">{{ upload.name }}</p>
-          </div>
-        </td>
-        <td class="px-4 py-3 text-purple-300">
-          {{ upload.created_at|date:"d M Y" }}
-        </td>
-      </tr>
-      {% empty %}
-      <tr>
-        <td colspan="2" class="px-4 py-6 text-center text-purple-300">
-          No uploads yet
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
+      <tbody class="divide-y divide-white/10">
+        {% for item in recent_data %}
+        <tr class="hover:bg-white/5">
+          <td class="px-4 py-3 font-mono text-purple-200">{{ item.id }}</td>
+          <td class="px-4 py-3 font-medium">{{ item.name }}</td>
+          <td class="px-4 py-3 text-purple-300">{{ item.phone }}</td>
+          <td class="px-4 py-3 text-purple-300">{{ item.category.name }}</td>
+          <td class="px-4 py-3">
+            {% if item.paid %}
+              <span class="text-green-400 font-semibold">Yes</span>
+            {% else %}
+              <span class="text-red-400 font-semibold">No</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3 text-purple-300">
+            {{ item.created_at|date:"d M Y" }}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" class="px-4 py-6 text-center text-purple-300">
+            No data found
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
-
 </main>
 </div>
 
@@ -289,6 +309,18 @@ new Chart(ctx, {
   }
 });
 </script>
+
+<style>
+  /* Hide scrollbar but keep scrolling */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE & Edge */
+    scrollbar-width: none;     /* Firefox */
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;             /* Chrome, Safari */
+  }
+</style>
 
 </body>
 </html>

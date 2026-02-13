@@ -56,6 +56,13 @@
        class="w-full border border-gray-300 rounded-lg p-3
               focus:outline-none focus:ring-2 focus:ring-teal-400"
        readonly/>
+      <!-- REMARKS -->
+<textarea id="remarks"
+          placeholder="Remarks (optional)"
+          rows="3" name="remarks"
+          class="w-full border border-gray-300 rounded-lg p-3
+                 focus:outline-none focus:ring-2 focus:ring-teal-400
+                 resize-none text-sm"></textarea>
 
 <!-- POST / UPLOAD BUTTON -->
 <button id="postBtn"
@@ -93,13 +100,13 @@
     </div>
   </div>
 
-
 <script>
   const cameraBtn = document.getElementById('cameraBtn');
   const cameraInput = document.getElementById('cameraInput');
   const postBtn = document.getElementById('postBtn');
   const uploadedBy = document.getElementById('uploadedBy');
   const imageName = document.getElementById('imageName');
+  const remarksInput = document.getElementById('remarks'); // ✅ FIX
 
   const btnText = document.getElementById('btnText');
   const loader = document.getElementById('loader');
@@ -137,6 +144,7 @@
     cameraInput.value = '';
     imageName.textContent = '';
     imageName.classList.add('hidden');
+    remarksInput.value = ''; // ✅ clear remarks
   }
 
   /* ---------------- INPUT HARDENING ---------------- */
@@ -159,6 +167,15 @@
       e.preventDefault();
       showModal('failed', 'INVALID INPUT', 'Please enter a valid name', 'OK');
     }
+  });
+
+  /* ---------------- REMARKS HARDENING ---------------- */
+
+  remarksInput.addEventListener('input', () => {
+    const blocked =
+      /(https?:\/\/|www\.|\.com|\.in|\.net|\.org|select|insert|update|delete|drop|union|script|--|;)/gi;
+
+    remarksInput.value = remarksInput.value.replace(blocked, '');
   });
 
   /* ---------------- CSRF ---------------- */
@@ -210,6 +227,7 @@
 
   postBtn.onclick = async () => {
     const name = uploadedBy.value.trim();
+    const remarks = remarksInput.value.trim(); // ✅ NEW
 
     if (!selectedFile)
       return showModal('failed', 'FAILED!', 'Please select an image.', 'TRY AGAIN');
@@ -225,6 +243,7 @@
       const formData = new FormData();
       formData.append('image', selectedFile);
       formData.append('name', name);
+      formData.append('remarks', remarks); // ✅ SENT TO BACKEND
 
       const res = await fetch('/upload/', {
         method: 'POST',
@@ -235,18 +254,13 @@
         body: formData
       });
 
-      // 🔐 SESSION EXPIRED
       if (res.status === 401) {
         showModal('failed', 'SESSION EXPIRED', 'Please login again.', 'LOGIN');
         modalBtn.onclick = () => window.location.href = '/login/';
         return;
       }
 
-      if (!res.ok) {
-        const text = await res.text();
-        console.error(text);
-        throw new Error('Upload failed');
-      }
+      if (!res.ok) throw new Error('Upload failed');
 
       const data = await res.json();
 
@@ -266,8 +280,6 @@
     }
   };
 </script>
-
-
 
 </body>
 </html>

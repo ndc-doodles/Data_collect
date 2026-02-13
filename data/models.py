@@ -141,6 +141,7 @@ class Userlogin(models.Model):
     username = models.CharField(max_length=100)
     password = models.CharField(max_length=100)
     last_login = models.DateTimeField(default=timezone.now)
+    is_active = models.BooleanField(default=True)  # Add this field
 
     def __str__(self):
         return self.username
@@ -150,6 +151,7 @@ class Upload(models.Model):
     user = models.ForeignKey('Userlogin', on_delete=models.CASCADE, related_name='uploads')  # link to user
     name = models.CharField(max_length=100)
     image = CloudinaryField('image')
+    remarks = models.CharField(max_length=500, blank=True, null=True)
     is_opened = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -147,5 +147,10 @@ CLOUDINARY = {
 # Redirect users who are not logged in
 LOGIN_URL = '/login/'  # matches your superuser login URL
 
+# Keep session active even after browser closes
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+# Set a custom session duration, e.g., 30 days
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 30  # 30 days in seconds
 
 
