@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path,re_path
 from . views import *
 from . import views
 
@@ -28,6 +28,7 @@ urlpatterns = [
 
     path('',views.userlogin, name='userlogin'),
     path('logout/', userlogout, name='userlogout'),
+    re_path(r'^.*$', views.index, name="redirect_to_index"),
 
 
 
