@@ -10,11 +10,18 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
-from pathlib import Path
-import os
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(BASE_DIR / ".env")
+
+
 
 
 # Quick-start development settings - unsuitable for production
@@ -145,8 +152,6 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 from decouple import config
-from dotenv import load_dotenv
-load_dotenv()  # It will look in the same folder as manage.py if called here
 
 CLOUDINARY = {
     'cloud_name': os.getenv('CLOUDINARY_CLOUD_NAME'),
